@@ -1,0 +1,61 @@
+name: Ticker Agent Run
+
+on:
+  schedule:
+    - cron: '0 */4 * * *' # Run every 4 hours
+  workflow_dispatch: # Allow manual run
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  run-agent:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-venv311.txt
+
+      - name: Run Ticker Agent
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          python src/main.py
+
+      - name: Commit Database Changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add ticker.db
+          git commit -m "Update ticker database" || echo "No changes to commit"
+          git push
+
+      - name: Upload Pages Artifact
+        uses: actions/upload-pages-artifact@v2
+        with:
+          path: public/
+
+  deploy-pages:
+    needs: run-agent
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v2

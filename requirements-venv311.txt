@@ -1,0 +1,12 @@
+httpx
+duckdb
+scikit-learn
+joblib
+telethon
+discord.py
+beautifulsoup4
+pandas
+vaderSentiment
+lxml
+pydantic
+loguru

@@ -33,6 +33,20 @@ jobs:
         run: |
           python src/main.py
 
+      - name: Debug Public Directory
+        run: |
+          echo "Listing public directory:"
+          ls -R public || echo "Public directory not found!"
+
+      - name: Ensure Index Exists (Fallback)
+        if: failure() || success()
+        run: |
+          mkdir -p public
+          if [ ! -f public/index.html ]; then
+            echo "<html><body><h1>Dashboard Generation Failed</h1><p>Please check GitHub Actions logs.</p></body></html>" > public/index.html
+            echo "Created fallback index.html"
+          fi
+
       - name: Commit Database Changes
         run: |
           git config --local user.email "action@github.com"

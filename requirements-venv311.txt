@@ -10,3 +10,4 @@ vaderSentiment
 lxml
 pydantic
 loguru
+python-dotenv

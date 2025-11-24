@@ -47,13 +47,21 @@ async def main():
             clean_ticker = ticker.replace("$", "")
             market_data = await dex.scrape(clean_ticker, limit=1)
             current_volume = 0.0
+            current_price = 0.0
             token_address = ""
             
             if market_data:
                 data = market_data[0]
+                # Parse price from content string "Price: X | Vol..."
+                try:
+                    price_str = data['content'].split('|')[0].replace('Price:', '').strip()
+                    current_price = float(price_str)
+                except:
+                    current_price = 0.0
+                    
                 current_volume = float(data['metadata'].get('txns', {}).get('h24', 0) or 0)
                 token_address = data['metadata'].get('tokenAddress')
-                logger.info(f"{ticker} 24h Txns: {current_volume}")
+                logger.info(f"{ticker} Price: ${current_price} | 24h Txns: {current_volume}")
 
             # 3. Safety Check (if address found)
             is_safe = True
@@ -75,7 +83,8 @@ async def main():
                     dummy_sent_history, 
                     dummy_vol_history, 
                     avg_sentiment, 
-                    current_volume
+                    current_volume,
+                    current_price
                 )
                 
                 if signal['is_pump']:

@@ -19,7 +19,9 @@ class DiscordNotifier:
             "description": f"**Confidence:** {signal['confidence']:.2f}\n**Sentiment Z:** {signal['sentiment_z']:.2f}\n**Volume Z:** {signal['volume_z']:.2f}",
             "color": 5763719, # Green
             "fields": [
-                {"name": "Action", "value": "Check Charts", "inline": True}
+                {"name": "Entry", "value": f"${signal['entry']:.4f}", "inline": True},
+                {"name": "Target (+15%)", "value": f"${signal['target']:.4f}", "inline": True},
+                {"name": "Stop (-5%)", "value": f"${signal['stop']:.4f}", "inline": True}
             ],
             "footer": {"text": "Ticker Agent v2"}
         }

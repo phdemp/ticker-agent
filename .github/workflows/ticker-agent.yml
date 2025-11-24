@@ -53,6 +53,7 @@ jobs:
           git config --local user.name "GitHub Action"
           git add ticker.db
           git commit -m "Update ticker database" || echo "No changes to commit"
+          git pull --rebase
           git push
 
       - name: Upload Pages Artifact

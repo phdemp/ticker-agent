@@ -45,3 +45,4 @@ ticker.db
 test_defillama.py
 .gemini/
 .qodo/
+public/

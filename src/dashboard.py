@@ -87,7 +87,60 @@ CARD_TEMPLATE = """
 </div>
 """
 
-def generate_dashboard():
+DEFI_STATS_TEMPLATE = """
+<div class="mb-8 grid grid-cols-1 md:grid-cols-3 gap-4">
+    <!-- Global TVL -->
+    <div class="bg-gray-800 p-4 rounded-lg border border-gray-700 text-center">
+        <h3 class="text-gray-400 text-sm uppercase tracking-wider mb-1">Global TVL</h3>
+        <p class="text-2xl font-bold text-blue-400">${tvl}</p>
+    </div>
+    
+    <!-- Stablecoin Mcap -->
+    <div class="bg-gray-800 p-4 rounded-lg border border-gray-700 text-center">
+        <h3 class="text-gray-400 text-sm uppercase tracking-wider mb-1">Stablecoin Mcap</h3>
+        <p class="text-2xl font-bold text-green-400">${stablecoins}</p>
+    </div>
+    
+    <!-- Top Yield -->
+    <div class="bg-gray-800 p-4 rounded-lg border border-gray-700 text-center">
+        <h3 class="text-gray-400 text-sm uppercase tracking-wider mb-1">Top Yield</h3>
+        <p class="text-xl font-bold text-yellow-400">{top_yield_apy:.0f}% APY</p>
+        <p class="text-xs text-gray-500">{top_yield_pool}</p>
+    </div>
+</div>
+
+<div class="mb-8 bg-gray-800 p-4 rounded-lg border border-gray-700">
+    <h3 class="text-lg font-bold mb-4 text-gray-300">🔥 Top Yield Pools</h3>
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left text-gray-400">
+            <thead class="text-xs text-gray-500 uppercase bg-gray-700">
+                <tr>
+                    <th class="px-4 py-2">Project</th>
+                    <th class="px-4 py-2">Chain</th>
+                    <th class="px-4 py-2">Symbol</th>
+                    <th class="px-4 py-2">APY</th>
+                    <th class="px-4 py-2">TVL</th>
+                </tr>
+            </thead>
+            <tbody>
+                {yield_rows}
+            </tbody>
+        </table>
+    </div>
+</div>
+"""
+
+YIELD_ROW_TEMPLATE = """
+<tr class="border-b border-gray-700 hover:bg-gray-700">
+    <td class="px-4 py-2 font-medium text-white">{project}</td>
+    <td class="px-4 py-2">{chain}</td>
+    <td class="px-4 py-2">{symbol}</td>
+    <td class="px-4 py-2 text-green-400 font-bold">{apy:.2f}%</td>
+    <td class="px-4 py-2">${tvl:,.0f}</td>
+</tr>
+"""
+
+def generate_dashboard(defi_stats=None):
     """Generates the index.html file in the public/ directory."""
     # Ensure we are using absolute paths relative to CWD
     cwd = os.getcwd()
@@ -119,8 +172,31 @@ def generate_dashboard():
         stop_price="137.94"
     )
     
+    # Generate DeFi Stats HTML
+    defi_html = ""
+    if defi_stats:
+        yield_rows = ""
+        for pool in defi_stats.get('yields', []):
+            yield_rows += YIELD_ROW_TEMPLATE.format(
+                project=pool['project'],
+                chain=pool['chain'],
+                symbol=pool['symbol'],
+                apy=pool['apy'],
+                tvl=pool['tvl']
+            )
+            
+        top_yield = defi_stats['yields'][0] if defi_stats['yields'] else {}
+        
+        defi_html = DEFI_STATS_TEMPLATE.format(
+            tvl=f"{defi_stats.get('tvl', 0):,.0f}",
+            stablecoins=f"{defi_stats.get('stablecoins', 0):,.0f}",
+            top_yield_apy=top_yield.get('apy', 0),
+            top_yield_pool=f"{top_yield.get('project')} ({top_yield.get('symbol')})",
+            yield_rows=yield_rows
+        )
+
     html = HTML_TEMPLATE.format(
-        cards=cards_html,
+        cards=defi_html + cards_html,
         timestamp="Just now"
     )
     

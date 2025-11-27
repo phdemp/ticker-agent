@@ -6,6 +6,7 @@ from loguru import logger
 from db import init_db, get_db_connection
 from scrapers.nitter import NitterScraper
 from scrapers.dexscreener import DexScreenerScraper
+from scrapers.defillama import DeFiLlamaScraper
 from ml.sentiment import SentimentAnalyzer
 from ml.correlator import SignalCorrelator
 from notifications import DiscordNotifier
@@ -25,12 +26,19 @@ async def main():
     # Initialize components
     nitter = NitterScraper()
     dex = DexScreenerScraper()
+    defillama = DeFiLlamaScraper()
     sentiment_analyzer = SentimentAnalyzer()
     correlator = SignalCorrelator()
     notifier = DiscordNotifier(DISCORD_WEBHOOK)
     rug_checker = RugCheck()
     
     try:
+        # 0. Scrape Global DeFi Stats
+        logger.info("Fetching Global DeFi Stats...")
+        defi_stats = await defillama.scrape()
+        if defi_stats:
+            logger.info(f"Global TVL: ${defi_stats[0]['tvl']:,.2f}")
+
         for ticker in WATCHLIST:
             logger.info(f"Analyzing {ticker}...")
             
@@ -95,9 +103,10 @@ async def main():
     finally:
         await nitter.close()
         await dex.close()
+        await defillama.close()
         await notifier.close()
         await rug_checker.close()
-        generate_dashboard()
+        generate_dashboard(defi_stats[0] if 'defi_stats' in locals() and defi_stats else None)
         logger.info("Run complete.")
 
 if __name__ == "__main__":

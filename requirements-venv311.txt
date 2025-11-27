@@ -1,4 +1,5 @@
-httpx
+python-dotenv
+loguru
 duckdb
 scikit-learn
 joblib
@@ -8,6 +9,5 @@ beautifulsoup4
 pandas
 vaderSentiment
 lxml
+httpx
 pydantic
-loguru
-python-dotenv

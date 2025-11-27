@@ -3,6 +3,8 @@ name: Ticker Agent Run
 on:
   schedule:
     - cron: '0 */4 * * *' # Run every 4 hours
+  push:
+    branches: [ "main" ]
   workflow_dispatch: # Allow manual run
 
 permissions:

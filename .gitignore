@@ -31,7 +31,6 @@ env/
 .env
 
 # Database
-ticker.db
 *.db
 *.sqlite3
 

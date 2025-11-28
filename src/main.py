@@ -71,13 +71,17 @@ async def main():
                 token_address = data['metadata'].get('tokenAddress')
                 logger.info(f"{ticker} Price: ${current_price} | 24h Txns: {current_volume}")
 
-            # 3. Safety Check (if address found)
+            # 3. Safety Check (if address found and is Solana)
             is_safe = True
             if token_address:
-                safety_report = await rug_checker.check_token(token_address)
-                if not safety_report['is_safe']:
-                    logger.warning(f"⚠️ {ticker} flagged as UNSAFE by RugCheck!")
-                    is_safe = False
+                chain_id = data['metadata'].get('chainId')
+                if chain_id == 'solana':
+                    safety_report = await rug_checker.check_token(token_address)
+                    if not safety_report.get('is_safe', True): # Default to safe if key missing
+                        logger.warning(f"⚠️ {ticker} flagged as UNSAFE by RugCheck!")
+                        is_safe = False
+                else:
+                    logger.info(f"Skipping RugCheck for {ticker} (Chain: {chain_id})")
             
             # 4. Correlate & Alert
             # Note: In a real run, we'd fetch history from DB. 

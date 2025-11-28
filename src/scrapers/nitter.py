@@ -5,10 +5,16 @@ from .base import BaseScraper
 
 # List of public Nitter instances
 NITTER_INSTANCES = [
-    "https://nitter.net",
-    "https://nitter.cz",
+    "https://nitter.poast.org",
+    "https://nitter.lucabased.xyz",
     "https://nitter.privacydev.net",
-    "https://nitter.projectsegfau.lt",
+    "https://light.nitter.net",
+    "https://nitter.net",
+    "https://nitter.esmailelbob.xyz",
+    "https://nitter.uni-sonia.com",
+    "https://nitter.ktachibana.party",
+    "https://nitter.tmoe.name",
+    "https://nitter.dafriser.net",
 ]
 
 class NitterScraper(BaseScraper):

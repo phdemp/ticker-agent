@@ -19,17 +19,17 @@ class RugCheck:
                 return self._parse_report(data)
             else:
                 logger.warning(f"RugCheck API error: {response.status_code}")
-                return {"score": -1, "status": "unknown"}
+                return {"score": -1, "status": "unknown", "is_safe": False}
         except Exception as e:
             logger.error(f"RugCheck failed: {e}")
-            return {"score": -1, "status": "error"}
+            return {"score": -1, "status": "error", "is_safe": False}
 
     def _parse_report(self, data: dict) -> dict:
         # RugCheck score is usually 0-10000 or similar. Lower is better?
         # Actually, let's look at the 'score' field if it exists, or 'risks'.
         # For now, we'll return the raw score and risk count.
         score = data.get("score", 0)
-        risks = data.get("risks", [])
+        risks = data.get("risks") or []
         return {
             "score": score,
             "risk_count": len(risks),

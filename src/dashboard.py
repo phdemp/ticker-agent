@@ -23,6 +23,50 @@ HTML_TEMPLATE = """
             Last updated: {timestamp}
         </div>
     </div>
+    <!-- TradingView Modal -->
+    <div id="tv_modal" class="fixed inset-0 bg-black/80 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-gray-800 w-full max-w-5xl h-[80vh] rounded-lg border border-gray-700 flex flex-col relative">
+            <button onclick="closeChart()" class="absolute top-4 right-4 text-gray-400 hover:text-white z-10">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+            <div id="modal_chart_container" class="w-full h-full rounded-lg overflow-hidden"></div>
+        </div>
+    </div>
+
+    <script>
+        function openChart(exchange, ticker) {
+            const container = document.getElementById('modal_chart_container');
+            container.innerHTML = ''; // Clear previous
+            document.getElementById('tv_modal').classList.remove('hidden');
+            
+            new TradingView.widget({
+                "width": "100%",
+                "height": "100%",
+                "symbol": exchange + ":" + ticker + "USD",
+                "interval": "60",
+                "timezone": "Etc/UTC",
+                "theme": "dark",
+                "style": "1",
+                "locale": "en",
+                "toolbar_bg": "#f1f3f6",
+                "enable_publishing": false,
+                "hide_top_toolbar": false,
+                "container_id": "modal_chart_container"
+            });
+        }
+
+        function closeChart() {
+            document.getElementById('tv_modal').classList.add('hidden');
+            document.getElementById('modal_chart_container').innerHTML = '';
+        }
+        
+        // Close on click outside
+        document.getElementById('tv_modal').addEventListener('click', function(e) {
+            if (e.target === this) closeChart();
+        });
+    </script>
 </body>
 </html>
 """
@@ -145,11 +189,12 @@ TOP_PICKS_TEMPLATE = """
     <h2 class="text-2xl font-bold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">🎯 Top Picks of the Moment</h2>
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         <!-- Safe Pick -->
-        <div class="bg-gray-800 rounded-xl border border-green-500/30 p-6 relative overflow-hidden group hover:border-green-500 transition-all">
+        <div class="bg-gray-800 rounded-xl border border-green-500/30 p-6 relative overflow-hidden group hover:border-green-500 transition-all flex flex-col">
             <div class="absolute top-0 right-0 bg-green-500/20 text-green-400 text-xs px-2 py-1 rounded-bl-lg font-bold">SAFE</div>
             <h3 class="text-2xl font-bold text-white mb-1">{safe_ticker}</h3>
             <p class="text-gray-400 text-sm mb-4">High Cap • Steady</p>
-            <div class="flex justify-between items-end">
+            
+            <div class="flex justify-between items-end mb-4">
                 <div>
                     <p class="text-xs text-gray-500">Sentiment</p>
                     <p class="text-lg font-mono text-green-400">{safe_sent:.2f}</p>
@@ -159,14 +204,36 @@ TOP_PICKS_TEMPLATE = """
                     <p class="text-lg font-mono text-white">${safe_fdv}</p>
                 </div>
             </div>
+
+            <div class="mt-auto">
+                <div class="border-t border-gray-700 pt-2 grid grid-cols-3 gap-2 text-xs text-center mb-3">
+                    <div>
+                        <p class="text-gray-500">Entry</p>
+                        <p class="text-blue-400 font-bold">${safe_entry}</p>
+                    </div>
+                    <div>
+                        <p class="text-gray-500">Target</p>
+                        <p class="text-green-400 font-bold">${safe_target}</p>
+                    </div>
+                    <div>
+                        <p class="text-gray-500">Stop</p>
+                        <p class="text-red-400 font-bold">${safe_stop}</p>
+                    </div>
+                </div>
+                <button onclick="openChart('BINANCE', '{safe_clean}')" class="w-full bg-gray-700 hover:bg-gray-600 text-white text-xs py-2 rounded transition-colors flex items-center justify-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" /></svg>
+                    View Chart
+                </button>
+            </div>
         </div>
 
         <!-- Mid Pick -->
-        <div class="bg-gray-800 rounded-xl border border-blue-500/30 p-6 relative overflow-hidden group hover:border-blue-500 transition-all">
+        <div class="bg-gray-800 rounded-xl border border-blue-500/30 p-6 relative overflow-hidden group hover:border-blue-500 transition-all flex flex-col">
             <div class="absolute top-0 right-0 bg-blue-500/20 text-blue-400 text-xs px-2 py-1 rounded-bl-lg font-bold">MID</div>
             <h3 class="text-2xl font-bold text-white mb-1">{mid_ticker}</h3>
             <p class="text-gray-400 text-sm mb-4">Growth • Momentum</p>
-            <div class="flex justify-between items-end">
+            
+            <div class="flex justify-between items-end mb-4">
                 <div>
                     <p class="text-xs text-gray-500">Sentiment</p>
                     <p class="text-lg font-mono text-blue-400">{mid_sent:.2f}</p>
@@ -176,14 +243,36 @@ TOP_PICKS_TEMPLATE = """
                     <p class="text-lg font-mono text-white">${mid_fdv}</p>
                 </div>
             </div>
+
+            <div class="mt-auto">
+                <div class="border-t border-gray-700 pt-2 grid grid-cols-3 gap-2 text-xs text-center mb-3">
+                    <div>
+                        <p class="text-gray-500">Entry</p>
+                        <p class="text-blue-400 font-bold">${mid_entry}</p>
+                    </div>
+                    <div>
+                        <p class="text-gray-500">Target</p>
+                        <p class="text-green-400 font-bold">${mid_target}</p>
+                    </div>
+                    <div>
+                        <p class="text-gray-500">Stop</p>
+                        <p class="text-red-400 font-bold">${mid_stop}</p>
+                    </div>
+                </div>
+                <button onclick="openChart('BINANCE', '{mid_clean}')" class="w-full bg-gray-700 hover:bg-gray-600 text-white text-xs py-2 rounded transition-colors flex items-center justify-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" /></svg>
+                    View Chart
+                </button>
+            </div>
         </div>
 
         <!-- Degen Pick -->
-        <div class="bg-gray-800 rounded-xl border border-red-500/30 p-6 relative overflow-hidden group hover:border-red-500 transition-all">
+        <div class="bg-gray-800 rounded-xl border border-red-500/30 p-6 relative overflow-hidden group hover:border-red-500 transition-all flex flex-col">
             <div class="absolute top-0 right-0 bg-red-500/20 text-red-400 text-xs px-2 py-1 rounded-bl-lg font-bold">DEGEN</div>
             <h3 class="text-2xl font-bold text-white mb-1">{degen_ticker}</h3>
             <p class="text-gray-400 text-sm mb-4">High Risk • Explosive</p>
-            <div class="flex justify-between items-end">
+            
+            <div class="flex justify-between items-end mb-4">
                 <div>
                     <p class="text-xs text-gray-500">Volume</p>
                     <p class="text-lg font-mono text-red-400">{degen_vol}</p>
@@ -192,6 +281,27 @@ TOP_PICKS_TEMPLATE = """
                     <p class="text-xs text-gray-500">FDV</p>
                     <p class="text-lg font-mono text-white">${degen_fdv}</p>
                 </div>
+            </div>
+
+            <div class="mt-auto">
+                <div class="border-t border-gray-700 pt-2 grid grid-cols-3 gap-2 text-xs text-center mb-3">
+                    <div>
+                        <p class="text-gray-500">Entry</p>
+                        <p class="text-blue-400 font-bold">${degen_entry}</p>
+                    </div>
+                    <div>
+                        <p class="text-gray-500">Target</p>
+                        <p class="text-green-400 font-bold">${degen_target}</p>
+                    </div>
+                    <div>
+                        <p class="text-gray-500">Stop</p>
+                        <p class="text-red-400 font-bold">${degen_stop}</p>
+                    </div>
+                </div>
+                <button onclick="openChart('BINANCE', '{degen_clean}')" class="w-full bg-gray-700 hover:bg-gray-600 text-white text-xs py-2 rounded transition-colors flex items-center justify-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" /></svg>
+                    View Chart
+                </button>
             </div>
         </div>
     </div>
@@ -226,14 +336,28 @@ def generate_dashboard(defi_stats=None, top_picks=None):
 
         picks_html = TOP_PICKS_TEMPLATE.format(
             safe_ticker=safe.get('ticker', 'N/A'),
+            safe_clean=safe.get('ticker', '').replace('$', ''),
             safe_sent=safe.get('sentiment', 0.0),
             safe_fdv=format_fdv(safe.get('fdv', 0)),
+            safe_entry=f"{safe.get('entry', 0):.4f}",
+            safe_target=f"{safe.get('target', 0):.4f}",
+            safe_stop=f"{safe.get('stop', 0):.4f}",
+            
             mid_ticker=mid.get('ticker', 'N/A'),
+            mid_clean=mid.get('ticker', '').replace('$', ''),
             mid_sent=mid.get('sentiment', 0.0),
             mid_fdv=format_fdv(mid.get('fdv', 0)),
+            mid_entry=f"{mid.get('entry', 0):.4f}",
+            mid_target=f"{mid.get('target', 0):.4f}",
+            mid_stop=f"{mid.get('stop', 0):.4f}",
+            
             degen_ticker=degen.get('ticker', 'N/A'),
+            degen_clean=degen.get('ticker', '').replace('$', ''),
             degen_vol=f"{degen.get('volume', 0):,.0f}",
-            degen_fdv=format_fdv(degen.get('fdv', 0))
+            degen_fdv=format_fdv(degen.get('fdv', 0)),
+            degen_entry=f"{degen.get('entry', 0):.4f}",
+            degen_target=f"{degen.get('target', 0):.4f}",
+            degen_stop=f"{degen.get('stop', 0):.4f}"
         )
 
     # Generate DeFi Stats HTML

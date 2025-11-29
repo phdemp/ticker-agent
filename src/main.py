@@ -135,9 +135,9 @@ async def main():
         degen_pick = sorted(degen_candidates, key=lambda x: (x["volume"], x["sentiment"]), reverse=True)[0] if degen_candidates else None
         
         top_picks = {
-            "safe": safe_pick,
-            "mid": mid_pick,
-            "degen": degen_pick
+            "safe": {**safe_pick, "entry": safe_pick["price"], "target": safe_pick["price"] * 1.10, "stop": safe_pick["price"] * 0.95} if safe_pick else None,
+            "mid": {**mid_pick, "entry": mid_pick["price"], "target": mid_pick["price"] * 1.20, "stop": mid_pick["price"] * 0.90} if mid_pick else None,
+            "degen": {**degen_pick, "entry": degen_pick["price"], "target": degen_pick["price"] * 1.50, "stop": degen_pick["price"] * 0.80} if degen_pick else None
         }
         
         logger.info(f"Top Picks: Safe={safe_pick['ticker'] if safe_pick else 'None'}, Mid={mid_pick['ticker'] if mid_pick else 'None'}, Degen={degen_pick['ticker'] if degen_pick else 'None'}")

@@ -17,7 +17,12 @@ load_dotenv()
 
 # Configuration
 DISCORD_WEBHOOK = os.getenv("DISCORD_WEBHOOK_URL")
-WATCHLIST = ["$SOL", "$BTC", "$ETH", "$PEPE", "$WIF"] # Example watchlist
+# Expanded Watchlist for Multi-Strategy
+WATCHLIST = [
+    "$SOL", "$BTC", "$ETH", # Safe
+    "$JUP", "$PYTH", "$WIF", "$BONK", # Mid
+    "$POPCAT", "$MYRO", "$WEN", "$DUKO", "$BOME", "$SLERF" # Degen/Risky
+]
 
 async def main():
     logger.info("Starting Ticker Agent v2...")
@@ -32,6 +37,8 @@ async def main():
     notifier = DiscordNotifier(DISCORD_WEBHOOK)
     rug_checker = RugCheck()
     
+    analyzed_tokens = []
+
     try:
         # 0. Scrape Global DeFi Stats
         logger.info("Fetching Global DeFi Stats...")
@@ -41,76 +48,114 @@ async def main():
 
         for ticker in WATCHLIST:
             logger.info(f"Analyzing {ticker}...")
+            token_data = {
+                "ticker": ticker,
+                "price": 0.0,
+                "volume": 0.0,
+                "sentiment": 0.0,
+                "fdv": 0.0,
+                "is_safe": True,
+                "risk_score": 0,
+                "signal": None
+            }
             
             # 1. Scrape Social (Nitter)
             tweets = await nitter.scrape(ticker, limit=20)
-            avg_sentiment = 0.0
             if tweets:
                 scores = [sentiment_analyzer.analyze(t['content']) for t in tweets]
-                avg_sentiment = sum(scores) / len(scores)
-                logger.info(f"{ticker} Sentiment: {avg_sentiment:.2f} ({len(tweets)} tweets)")
+                token_data["sentiment"] = sum(scores) / len(scores)
+                logger.info(f"{ticker} Sentiment: {token_data['sentiment']:.2f} ({len(tweets)} tweets)")
             
             # 2. Scrape Market (DexScreener)
-            # Remove $ for DexScreener search
             clean_ticker = ticker.replace("$", "")
             market_data = await dex.scrape(clean_ticker, limit=1)
-            current_volume = 0.0
-            current_price = 0.0
-            token_address = ""
             
+            token_address = ""
             if market_data:
                 data = market_data[0]
-                # Parse price from content string "Price: X | Vol..."
                 try:
                     price_str = data['content'].split('|')[0].replace('Price:', '').strip()
-                    current_price = float(price_str)
+                    token_data["price"] = float(price_str)
                 except:
-                    current_price = 0.0
+                    token_data["price"] = 0.0
                     
-                current_volume = float(data['metadata'].get('txns', {}).get('h24', 0) or 0)
+                token_data["volume"] = float(data['metadata'].get('txns', {}).get('h24', 0) or 0)
+                token_data["fdv"] = float(data['metadata'].get('fdv', 0) or 0)
                 token_address = data['metadata'].get('tokenAddress')
-                logger.info(f"{ticker} Price: ${current_price} | 24h Txns: {current_volume}")
+                logger.info(f"{ticker} Price: ${token_data['price']} | FDV: ${token_data['fdv']:,.0f}")
 
             # 3. Safety Check (if address found and is Solana)
-            is_safe = True
             if token_address:
                 chain_id = data['metadata'].get('chainId')
                 if chain_id == 'solana':
                     safety_report = await rug_checker.check_token(token_address)
-                    if not safety_report.get('is_safe', True): # Default to safe if key missing
+                    token_data["risk_score"] = safety_report.get('score', 0)
+                    if not safety_report.get('is_safe', True):
                         logger.warning(f"⚠️ {ticker} flagged as UNSAFE by RugCheck!")
-                        is_safe = False
+                        token_data["is_safe"] = False
                 else:
                     logger.info(f"Skipping RugCheck for {ticker} (Chain: {chain_id})")
             
             # 4. Correlate & Alert
-            # Note: In a real run, we'd fetch history from DB. 
-            # For this demo, we use dummy history to simulate Z-scores.
+            # Dummy history for demo
             dummy_sent_history = [0.1, 0.2, 0.0, 0.1, 0.05]
             dummy_vol_history = [100, 120, 90, 110, 100]
             
-            if is_safe:
+            if token_data["is_safe"]:
                 signal = correlator.correlate(
                     ticker, 
                     dummy_sent_history, 
                     dummy_vol_history, 
-                    avg_sentiment, 
-                    current_volume,
-                    current_price
+                    token_data["sentiment"], 
+                    token_data["volume"],
+                    token_data["price"]
                 )
+                token_data["signal"] = signal
                 
                 if signal['is_pump']:
                     await notifier.send_alert(signal)
             
+            analyzed_tokens.append(token_data)
+
+        # 5. Multi-Strategy Selection
+        logger.info("Selecting top picks...")
+        
+        # Strategy 1: Safe (High FDV > 1B)
+        # Sort by Sentiment (desc), then Volume (desc)
+        safe_candidates = [t for t in analyzed_tokens if t["fdv"] > 1_000_000_000]
+        safe_pick = sorted(safe_candidates, key=lambda x: (x["sentiment"], x["volume"]), reverse=True)[0] if safe_candidates else None
+        
+        # Strategy 2: Mid (100M < FDV < 1B)
+        mid_candidates = [t for t in analyzed_tokens if 100_000_000 <= t["fdv"] <= 1_000_000_000]
+        mid_pick = sorted(mid_candidates, key=lambda x: (x["sentiment"], x["volume"]), reverse=True)[0] if mid_candidates else None
+        
+        # Strategy 3: Degen (FDV < 100M, Must be Safe)
+        # Sort by Volume (desc), then Sentiment (desc)
+        degen_candidates = [t for t in analyzed_tokens if t["fdv"] < 100_000_000 and t["is_safe"]]
+        degen_pick = sorted(degen_candidates, key=lambda x: (x["volume"], x["sentiment"]), reverse=True)[0] if degen_candidates else None
+        
+        top_picks = {
+            "safe": safe_pick,
+            "mid": mid_pick,
+            "degen": degen_pick
+        }
+        
+        logger.info(f"Top Picks: Safe={safe_pick['ticker'] if safe_pick else 'None'}, Mid={mid_pick['ticker'] if mid_pick else 'None'}, Degen={degen_pick['ticker'] if degen_pick else 'None'}")
+
     except Exception as e:
         logger.error(f"Main loop error: {e}")
+        top_picks = {"safe": None, "mid": None, "degen": None} # Fallback
     finally:
         await nitter.close()
         await dex.close()
         await defillama.close()
         await notifier.close()
         await rug_checker.close()
-        generate_dashboard(defi_stats[0] if 'defi_stats' in locals() and defi_stats else None)
+        
+        generate_dashboard(
+            defi_stats=defi_stats[0] if 'defi_stats' in locals() and defi_stats else None,
+            top_picks=top_picks if 'top_picks' in locals() else None
+        )
         logger.info("Run complete.")
 
 if __name__ == "__main__":

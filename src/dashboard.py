@@ -140,7 +140,65 @@ YIELD_ROW_TEMPLATE = """
 </tr>
 """
 
-def generate_dashboard(defi_stats=None):
+TOP_PICKS_TEMPLATE = """
+<div class="mb-8">
+    <h2 class="text-2xl font-bold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">🎯 Top Picks of the Moment</h2>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Safe Pick -->
+        <div class="bg-gray-800 rounded-xl border border-green-500/30 p-6 relative overflow-hidden group hover:border-green-500 transition-all">
+            <div class="absolute top-0 right-0 bg-green-500/20 text-green-400 text-xs px-2 py-1 rounded-bl-lg font-bold">SAFE</div>
+            <h3 class="text-2xl font-bold text-white mb-1">{safe_ticker}</h3>
+            <p class="text-gray-400 text-sm mb-4">High Cap • Steady</p>
+            <div class="flex justify-between items-end">
+                <div>
+                    <p class="text-xs text-gray-500">Sentiment</p>
+                    <p class="text-lg font-mono text-green-400">{safe_sent:.2f}</p>
+                </div>
+                <div class="text-right">
+                    <p class="text-xs text-gray-500">FDV</p>
+                    <p class="text-lg font-mono text-white">${safe_fdv}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mid Pick -->
+        <div class="bg-gray-800 rounded-xl border border-blue-500/30 p-6 relative overflow-hidden group hover:border-blue-500 transition-all">
+            <div class="absolute top-0 right-0 bg-blue-500/20 text-blue-400 text-xs px-2 py-1 rounded-bl-lg font-bold">MID</div>
+            <h3 class="text-2xl font-bold text-white mb-1">{mid_ticker}</h3>
+            <p class="text-gray-400 text-sm mb-4">Growth • Momentum</p>
+            <div class="flex justify-between items-end">
+                <div>
+                    <p class="text-xs text-gray-500">Sentiment</p>
+                    <p class="text-lg font-mono text-blue-400">{mid_sent:.2f}</p>
+                </div>
+                <div class="text-right">
+                    <p class="text-xs text-gray-500">FDV</p>
+                    <p class="text-lg font-mono text-white">${mid_fdv}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Degen Pick -->
+        <div class="bg-gray-800 rounded-xl border border-red-500/30 p-6 relative overflow-hidden group hover:border-red-500 transition-all">
+            <div class="absolute top-0 right-0 bg-red-500/20 text-red-400 text-xs px-2 py-1 rounded-bl-lg font-bold">DEGEN</div>
+            <h3 class="text-2xl font-bold text-white mb-1">{degen_ticker}</h3>
+            <p class="text-gray-400 text-sm mb-4">High Risk • Explosive</p>
+            <div class="flex justify-between items-end">
+                <div>
+                    <p class="text-xs text-gray-500">Volume</p>
+                    <p class="text-lg font-mono text-red-400">{degen_vol}</p>
+                </div>
+                <div class="text-right">
+                    <p class="text-xs text-gray-500">FDV</p>
+                    <p class="text-lg font-mono text-white">${degen_fdv}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+"""
+
+def generate_dashboard(defi_stats=None, top_picks=None):
     """Generates the index.html file in the public/ directory."""
     # Ensure we are using absolute paths relative to CWD
     cwd = os.getcwd()
@@ -153,25 +211,31 @@ def generate_dashboard(defi_stats=None):
         os.makedirs(public_dir)
         print(f"Created directory: {public_dir}")
         
-    # For now, we'll mock the data fetching since we don't have a populated DB in this env
-    # In production, this would query `signals` table
-    cards_html = ""
-    
-    # Example card
-    cards_html += CARD_TEMPLATE.format(
-        ticker="$SOL",
-        clean_ticker="SOL",
-        exchange="BINANCE",
-        signal_type="PUMP",
-        badge_color="bg-green-900 text-green-300",
-        sentiment_z=2.5,
-        volume_z=3.1,
-        confidence=0.85,
-        entry_price="145.20",
-        target_price="166.98",
-        stop_price="137.94"
-    )
-    
+    # Generate Top Picks HTML
+    picks_html = ""
+    if top_picks:
+        safe = top_picks.get('safe') or {}
+        mid = top_picks.get('mid') or {}
+        degen = top_picks.get('degen') or {}
+        
+        def format_fdv(val):
+            if not val: return "N/A"
+            if val >= 1_000_000_000: return f"{val/1_000_000_000:.1f}B"
+            if val >= 1_000_000: return f"{val/1_000_000:.1f}M"
+            return f"{val/1_000:.1f}K"
+
+        picks_html = TOP_PICKS_TEMPLATE.format(
+            safe_ticker=safe.get('ticker', 'N/A'),
+            safe_sent=safe.get('sentiment', 0.0),
+            safe_fdv=format_fdv(safe.get('fdv', 0)),
+            mid_ticker=mid.get('ticker', 'N/A'),
+            mid_sent=mid.get('sentiment', 0.0),
+            mid_fdv=format_fdv(mid.get('fdv', 0)),
+            degen_ticker=degen.get('ticker', 'N/A'),
+            degen_vol=f"{degen.get('volume', 0):,.0f}",
+            degen_fdv=format_fdv(degen.get('fdv', 0))
+        )
+
     # Generate DeFi Stats HTML
     defi_html = ""
     if defi_stats:
@@ -195,8 +259,26 @@ def generate_dashboard(defi_stats=None):
             yield_rows=yield_rows
         )
 
+    # For now, we'll mock the data fetching since we don't have a populated DB in this env
+    # In production, this would query `signals` table
+    cards_html = ""
+    # Example card
+    cards_html += CARD_TEMPLATE.format(
+        ticker="$SOL",
+        clean_ticker="SOL",
+        exchange="BINANCE",
+        signal_type="PUMP",
+        badge_color="bg-green-900 text-green-300",
+        sentiment_z=2.5,
+        volume_z=3.1,
+        confidence=0.85,
+        entry_price="145.20",
+        target_price="166.98",
+        stop_price="137.94"
+    )
+
     html = HTML_TEMPLATE.format(
-        cards=defi_html + cards_html,
+        cards=picks_html + defi_html + cards_html,
         timestamp="Just now"
     )
     

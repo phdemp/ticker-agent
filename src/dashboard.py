@@ -44,7 +44,7 @@ HTML_TEMPLATE = """
             new TradingView.widget({{
                 "width": "100%",
                 "height": "100%",
-                "symbol": exchange + ":" + ticker + "USD",
+                "symbol": exchange + ":" + ticker + "USDT",
                 "interval": "60",
                 "timezone": "Etc/UTC",
                 "theme": "dark",
@@ -85,7 +85,7 @@ CARD_TEMPLATE = """
     {{
         "width": "100%",
         "height": 250,
-        "symbol": "{exchange}:{clean_ticker}USD",
+        "symbol": "{exchange}:{clean_ticker}USDT",
         "interval": "60",
         "timezone": "Etc/UTC",
         "theme": "dark",

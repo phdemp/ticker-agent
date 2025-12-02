@@ -41,7 +41,7 @@ HTML_TEMPLATE = """
             container.innerHTML = ''; // Clear previous
             document.getElementById('tv_modal').classList.remove('hidden');
             
-            new TradingView.widget({
+            new TradingView.widget({{
                 "width": "100%",
                 "height": "100%",
                 "symbol": exchange + ":" + ticker + "USD",
@@ -54,7 +54,7 @@ HTML_TEMPLATE = """
                 "enable_publishing": false,
                 "hide_top_toolbar": false,
                 "container_id": "modal_chart_container"
-            });
+            }});
         }
 
         function closeChart() {

@@ -36,7 +36,7 @@ HTML_TEMPLATE = """
     </div>
 
     <script>
-        function openChart(exchange, ticker) {
+        function openChart(exchange, ticker) {{
             const container = document.getElementById('modal_chart_container');
             container.innerHTML = ''; // Clear previous
             document.getElementById('tv_modal').classList.remove('hidden');
@@ -55,17 +55,17 @@ HTML_TEMPLATE = """
                 "hide_top_toolbar": false,
                 "container_id": "modal_chart_container"
             }});
-        }
+        }}
 
-        function closeChart() {
+        function closeChart() {{
             document.getElementById('tv_modal').classList.add('hidden');
             document.getElementById('modal_chart_container').innerHTML = '';
-        }
+        }}
         
         // Close on click outside
-        document.getElementById('tv_modal').addEventListener('click', function(e) {
+        document.getElementById('tv_modal').addEventListener('click', function(e) {{
             if (e.target === this) closeChart();
-        });
+        }});
     </script>
 </body>
 </html>

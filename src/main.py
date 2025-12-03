@@ -46,7 +46,30 @@ async def main():
         if defi_stats:
             logger.info(f"Global TVL: ${defi_stats[0]['tvl']:,.2f}")
 
-        for ticker in WATCHLIST:
+        # 0.1 Dynamic Token Discovery
+        logger.info("Fetching trending tokens (Boosts)...")
+        boosts = await dex.get_token_boosts()
+        dynamic_watchlist = set(WATCHLIST) # Start with static safe list
+        
+        # Resolve top 10 boosts to symbols
+        for boost in boosts[:10]:
+            try:
+                # We need to fetch pair data to get the symbol
+                address = boost.get("tokenAddress")
+                if address:
+                    pair_data = await dex.scrape(address, limit=1)
+                    if pair_data:
+                        symbol = pair_data[0]['metadata'].get('symbol')
+                        if symbol:
+                            ticker = f"${symbol}"
+                            dynamic_watchlist.add(ticker)
+                            logger.info(f"Discovered trending token: {ticker}")
+            except Exception as e:
+                logger.error(f"Failed to resolve boost {boost.get('tokenAddress')}: {e}")
+
+        logger.info(f"Final Watchlist: {dynamic_watchlist}")
+
+        for ticker in dynamic_watchlist:
             logger.info(f"Analyzing {ticker}...")
             token_data = {
                 "ticker": ticker,

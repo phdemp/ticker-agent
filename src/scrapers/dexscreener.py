@@ -24,6 +24,21 @@ class DexScreenerScraper(BaseScraper):
             self.log_error(f"Scrape error: {e}")
             return []
 
+    async def get_token_boosts(self) -> List[Dict[str, Any]]:
+        """
+        Fetches the latest boosted tokens from DexScreener.
+        Returns a list of dicts with 'chainId' and 'tokenAddress'.
+        """
+        try:
+            url = "https://api.dexscreener.com/token-boosts/top/v1"
+            response = await self.client.get(url)
+            if response.status_code == 200:
+                return response.json()
+            return []
+        except Exception as e:
+            self.log_error(f"Boosts fetch error: {e}")
+            return []
+
     def _process_pairs(self, pairs: List[Dict], limit: int) -> List[Dict[str, Any]]:
         results = []
         for pair in pairs[:limit]:
@@ -35,6 +50,7 @@ class DexScreenerScraper(BaseScraper):
                 "url": pair.get("url"),
                 "metadata": {
                     "chainId": pair.get("chainId"),
+                    "symbol": pair.get("baseToken", {}).get("symbol"),
                     "tokenAddress": pair.get("baseToken", {}).get("address"),
                     "liquidity": pair.get("liquidity", {}).get("usd"),
                     "fdv": pair.get("fdv"),

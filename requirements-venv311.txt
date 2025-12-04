@@ -11,3 +11,4 @@ vaderSentiment
 lxml
 httpx
 pydantic
+feedparser

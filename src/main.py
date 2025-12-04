@@ -65,6 +65,11 @@ async def main():
 
         # 0.2 Artemis Stablecoin Flows
         logger.info("Fetching Artemis Stablecoin Flows...")
+        # Check supported assets (test free endpoint)
+        assets = await artemis.get_assets()
+        if assets:
+            logger.info(f"Artemis: Found {len(assets)} supported assets (Free Endpoint Working!)")
+        
         # Example: Check Solana flows
         sol_flows = await artemis.get_stablecoin_flows("solana")
         if sol_flows:

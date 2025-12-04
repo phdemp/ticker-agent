@@ -7,6 +7,8 @@ from db import init_db, get_db_connection
 from scrapers.nitter import NitterScraper
 from scrapers.dexscreener import DexScreenerScraper
 from scrapers.defillama import DeFiLlamaScraper
+from scrapers.cointelegraph import CointelegraphScraper
+from scrapers.artemis import ArtemisScraper
 from ml.sentiment import SentimentAnalyzer
 from ml.correlator import SignalCorrelator
 from notifications import DiscordNotifier
@@ -17,6 +19,8 @@ load_dotenv()
 
 # Configuration
 DISCORD_WEBHOOK = os.getenv("DISCORD_WEBHOOK_URL")
+ARTEMIS_API_KEY = os.getenv("ARTEMIS_API_KEY")
+
 # Expanded Watchlist for Multi-Strategy
 WATCHLIST = [
     "$SOL", "$BTC", "$ETH", # Safe
@@ -32,6 +36,8 @@ async def main():
     nitter = NitterScraper()
     dex = DexScreenerScraper()
     defillama = DeFiLlamaScraper()
+    cointelegraph = CointelegraphScraper()
+    artemis = ArtemisScraper()
     sentiment_analyzer = SentimentAnalyzer()
     correlator = SignalCorrelator()
     notifier = DiscordNotifier(DISCORD_WEBHOOK)
@@ -46,7 +52,25 @@ async def main():
         if defi_stats:
             logger.info(f"Global TVL: ${defi_stats[0]['tvl']:,.2f}")
 
-        # 0.1 Dynamic Token Discovery
+        # 0.1 Cointelegraph News
+        logger.info("Fetching Cointelegraph News...")
+        news = await cointelegraph.scrape(limit=5)
+        global_sentiment = 0
+        if news:
+            scores = [sentiment_analyzer.analyze(n['content']) for n in news]
+            global_sentiment = sum(scores) / len(scores)
+            logger.info(f"Global News Sentiment: {global_sentiment:.2f} (based on {len(news)} articles)")
+            for article in news:
+                logger.info(f"News: {article['metadata']['title']}")
+
+        # 0.2 Artemis Stablecoin Flows
+        logger.info("Fetching Artemis Stablecoin Flows...")
+        # Example: Check Solana flows
+        sol_flows = await artemis.get_stablecoin_flows("solana")
+        if sol_flows:
+            logger.info(f"Solana Stablecoin Flows: {sol_flows}")
+
+        # 0.3 Dynamic Token Discovery
         logger.info("Fetching trending tokens (Boosts)...")
         boosts = await dex.get_token_boosts()
         dynamic_watchlist = set(WATCHLIST) # Start with static safe list
@@ -172,6 +196,8 @@ async def main():
         await nitter.close()
         await dex.close()
         await defillama.close()
+        await cointelegraph.close()
+        await artemis.close()
         await notifier.close()
         await rug_checker.close()
         

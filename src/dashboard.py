@@ -308,7 +308,29 @@ TOP_PICKS_TEMPLATE = """
 </div>
 """
 
-def generate_dashboard(defi_stats=None, top_picks=None):
+NEWS_SECTION_TEMPLATE = """
+<div class="mb-8 bg-gray-800 p-6 rounded-lg border border-gray-700">
+    <h2 class="text-xl font-bold mb-4 text-orange-400 flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" /></svg>
+        Latest Crypto News
+    </h2>
+    <div class="space-y-4">
+        {news_items}
+    </div>
+</div>
+"""
+
+NEWS_ITEM_TEMPLATE = """
+<div class="border-b border-gray-700 pb-4 last:border-0 last:pb-0">
+    <a href="{url}" target="_blank" class="text-lg font-medium text-white hover:text-blue-400 transition-colors block mb-1">{title}</a>
+    <p class="text-sm text-gray-400 mb-2">{summary}</p>
+    <div class="flex items-center gap-2">
+        <span class="text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded">Cointelegraph</span>
+    </div>
+</div>
+"""
+
+def generate_dashboard(defi_stats=None, top_picks=None, news=None):
     """Generates the index.html file in the public/ directory."""
     # Ensure we are using absolute paths relative to CWD
     cwd = os.getcwd()
@@ -401,8 +423,22 @@ def generate_dashboard(defi_stats=None, top_picks=None):
         stop_price="137.94"
     )
 
+    # Generate News HTML
+    news_html = ""
+    if news:
+        news_items = ""
+        for article in news:
+            news_items += NEWS_ITEM_TEMPLATE.format(
+                title=article['metadata']['title'],
+                summary=article['metadata']['summary'][:150] + "...",
+                url=article['url'],
+                sentiment="Neutral" # Placeholder, could be passed from main
+            )
+        
+        news_html = NEWS_SECTION_TEMPLATE.format(news_items=news_items)
+
     html = HTML_TEMPLATE.format(
-        cards=picks_html + defi_html + cards_html,
+        cards=picks_html + defi_html + news_html + cards_html,
         timestamp="Just now"
     )
     

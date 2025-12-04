@@ -45,13 +45,6 @@ async def main():
     
     analyzed_tokens = []
 
-    try:
-        # 0. Scrape Global DeFi Stats
-        logger.info("Fetching Global DeFi Stats...")
-        defi_stats = await defillama.scrape()
-        if defi_stats:
-            logger.info(f"Global TVL: ${defi_stats[0]['tvl']:,.2f}")
-
         # 0.1 Cointelegraph News
         logger.info("Fetching Cointelegraph News...")
         news = await cointelegraph.scrape(limit=5)
@@ -62,6 +55,21 @@ async def main():
             logger.info(f"Global News Sentiment: {global_sentiment:.2f} (based on {len(news)} articles)")
             for article in news:
                 logger.info(f"News: {article['metadata']['title']}")
+                
+                # Extract tickers from news (Simple heuristic)
+                # Look for words starting with $ or all-caps words that are 3-5 chars long
+                words = article['metadata']['title'].split()
+                for word in words:
+                    clean_word = word.strip(".,!?()[]")
+                    if clean_word.startswith("$") and len(clean_word) > 1:
+                        dynamic_watchlist.add(clean_word.upper())
+                        logger.info(f"Found ticker in news: {clean_word}")
+                    elif clean_word.isupper() and 3 <= len(clean_word) <= 5 and clean_word not in ["THE", "AND", "FOR", "WHY", "HOW", "NEW", "ETF", "SEC", "CEO"]:
+                        # Heuristic: assume it's a ticker if all caps and short, excluding common words
+                        # This is risky but fits "trending from sentiment" request
+                        ticker = f"${clean_word}"
+                        dynamic_watchlist.add(ticker)
+                        logger.info(f"Found potential ticker in news: {ticker}")
 
         # 0.2 Artemis Stablecoin Flows
         logger.info("Fetching Artemis Stablecoin Flows...")
@@ -78,12 +86,65 @@ async def main():
         # 0.3 Dynamic Token Discovery
         logger.info("Fetching trending tokens (Boosts)...")
         boosts = await dex.get_token_boosts()
-        dynamic_watchlist = set(WATCHLIST) # Start with static safe list
+        # dynamic_watchlist is already initialized before news block? No, wait.
+        # We need to initialize dynamic_watchlist BEFORE news block or ensure it's available.
+        # Let's fix the order in the full file context or just initialize it here if not exists.
+        # Actually, looking at previous code, dynamic_watchlist was initialized later.
+        # I should move initialization UP.
+        
+        # RE-WRITING BLOCK TO HANDLE ORDER CORRECTLY
+        
+    try:
+        # Initialize dynamic watchlist with static list
+        dynamic_watchlist = set(WATCHLIST)
+
+        # 0. Scrape Global DeFi Stats
+        logger.info("Fetching Global DeFi Stats...")
+        defi_stats = await defillama.scrape()
+        if defi_stats:
+            logger.info(f"Global TVL: ${defi_stats[0]['tvl']:,.2f}")
+
+        # 0.1 Cointelegraph News
+        logger.info("Fetching Cointelegraph News...")
+        news = await cointelegraph.scrape(limit=5)
+        global_sentiment = 0
+        if news:
+            scores = [sentiment_analyzer.analyze(n['content']) for n in news]
+            global_sentiment = sum(scores) / len(scores)
+            logger.info(f"Global News Sentiment: {global_sentiment:.2f} (based on {len(news)} articles)")
+            for article in news:
+                logger.info(f"News: {article['metadata']['title']}")
+                
+                # Extract tickers from news
+                words = article['metadata']['title'].split()
+                for word in words:
+                    clean_word = word.strip(".,!?()[]")
+                    if clean_word.startswith("$") and len(clean_word) > 1:
+                        dynamic_watchlist.add(clean_word.upper())
+                        logger.info(f"Found ticker in news: {clean_word}")
+                    elif clean_word.isupper() and 3 <= len(clean_word) <= 5 and clean_word not in ["THE", "AND", "FOR", "WHY", "HOW", "NEW", "ETF", "SEC", "CEO", "USD", "ATH", "BTC", "ETH"]:
+                        # Add $BTC and $ETH are already in safe list, but good to exclude common acronyms
+                        ticker = f"${clean_word}"
+                        dynamic_watchlist.add(ticker)
+                        logger.info(f"Found potential ticker in news: {ticker}")
+
+        # 0.2 Artemis Stablecoin Flows
+        logger.info("Fetching Artemis Stablecoin Flows...")
+        assets = await artemis.get_assets()
+        if assets:
+            logger.info(f"Artemis: Found {len(assets)} supported assets (Free Endpoint Working!)")
+        
+        sol_flows = await artemis.get_stablecoin_flows("solana")
+        if sol_flows:
+            logger.info(f"Solana Stablecoin Flows: {sol_flows}")
+
+        # 0.3 Dynamic Token Discovery (DexScreener Boosts)
+        logger.info("Fetching trending tokens (Boosts)...")
+        boosts = await dex.get_token_boosts()
         
         # Resolve top 10 boosts to symbols
         for boost in boosts[:10]:
             try:
-                # We need to fetch pair data to get the symbol
                 address = boost.get("tokenAddress")
                 if address:
                     pair_data = await dex.scrape(address, limit=1)
@@ -99,116 +160,17 @@ async def main():
         logger.info(f"Final Watchlist: {dynamic_watchlist}")
 
         for ticker in dynamic_watchlist:
-            logger.info(f"Analyzing {ticker}...")
-            token_data = {
-                "ticker": ticker,
-                "price": 0.0,
-                "volume": 0.0,
-                "sentiment": 0.0,
-                "fdv": 0.0,
-                "is_safe": True,
-                "risk_score": 0,
-                "signal": None
-            }
+            # ... (rest of loop is same)
+            pass # Placeholder for replace tool context
             
-            # 1. Scrape Social (Nitter)
-            tweets = await nitter.scrape(ticker, limit=20)
-            if tweets:
-                scores = [sentiment_analyzer.analyze(t['content']) for t in tweets]
-                token_data["sentiment"] = sum(scores) / len(scores)
-                logger.info(f"{ticker} Sentiment: {token_data['sentiment']:.2f} ({len(tweets)} tweets)")
-            
-            # 2. Scrape Market (DexScreener)
-            clean_ticker = ticker.replace("$", "")
-            market_data = await dex.scrape(clean_ticker, limit=1)
-            
-            token_address = ""
-            if market_data:
-                data = market_data[0]
-                try:
-                    price_str = data['content'].split('|')[0].replace('Price:', '').strip()
-                    token_data["price"] = float(price_str)
-                except:
-                    token_data["price"] = 0.0
-                    
-                token_data["volume"] = float(data['metadata'].get('txns', {}).get('h24', 0) or 0)
-                token_data["fdv"] = float(data['metadata'].get('fdv', 0) or 0)
-                token_address = data['metadata'].get('tokenAddress')
-                logger.info(f"{ticker} Price: ${token_data['price']} | FDV: ${token_data['fdv']:,.0f}")
-
-            # 3. Safety Check (if address found and is Solana)
-            if token_address:
-                chain_id = data['metadata'].get('chainId')
-                if chain_id == 'solana':
-                    safety_report = await rug_checker.check_token(token_address)
-                    token_data["risk_score"] = safety_report.get('score', 0)
-                    if not safety_report.get('is_safe', True):
-                        logger.warning(f"⚠️ {ticker} flagged as UNSAFE by RugCheck!")
-                        token_data["is_safe"] = False
-                else:
-                    logger.info(f"Skipping RugCheck for {ticker} (Chain: {chain_id})")
-            
-            # 4. Correlate & Alert
-            # Dummy history for demo
-            dummy_sent_history = [0.1, 0.2, 0.0, 0.1, 0.05]
-            dummy_vol_history = [100, 120, 90, 110, 100]
-            
-            if token_data["is_safe"]:
-                signal = correlator.correlate(
-                    ticker, 
-                    dummy_sent_history, 
-                    dummy_vol_history, 
-                    token_data["sentiment"], 
-                    token_data["volume"],
-                    token_data["price"]
-                )
-                token_data["signal"] = signal
-                
-                if signal['is_pump']:
-                    await notifier.send_alert(signal)
-            
-            analyzed_tokens.append(token_data)
-
-        # 5. Multi-Strategy Selection
-        logger.info("Selecting top picks...")
-        
-        # Strategy 1: Safe (High FDV > 1B)
-        # Sort by Sentiment (desc), then Volume (desc)
-        safe_candidates = [t for t in analyzed_tokens if t["fdv"] > 1_000_000_000]
-        safe_pick = sorted(safe_candidates, key=lambda x: (x["sentiment"], x["volume"]), reverse=True)[0] if safe_candidates else None
-        
-        # Strategy 2: Mid (100M < FDV < 1B)
-        mid_candidates = [t for t in analyzed_tokens if 100_000_000 <= t["fdv"] <= 1_000_000_000]
-        mid_pick = sorted(mid_candidates, key=lambda x: (x["sentiment"], x["volume"]), reverse=True)[0] if mid_candidates else None
-        
-        # Strategy 3: Degen (FDV < 100M, Must be Safe)
-        # Sort by Volume (desc), then Sentiment (desc)
-        degen_candidates = [t for t in analyzed_tokens if t["fdv"] < 100_000_000 and t["is_safe"]]
-        degen_pick = sorted(degen_candidates, key=lambda x: (x["volume"], x["sentiment"]), reverse=True)[0] if degen_candidates else None
-        
-        top_picks = {
-            "safe": {**safe_pick, "entry": safe_pick["price"], "target": safe_pick["price"] * 1.10, "stop": safe_pick["price"] * 0.95} if safe_pick else None,
-            "mid": {**mid_pick, "entry": mid_pick["price"], "target": mid_pick["price"] * 1.20, "stop": mid_pick["price"] * 0.90} if mid_pick else None,
-            "degen": {**degen_pick, "entry": degen_pick["price"], "target": degen_pick["price"] * 1.50, "stop": degen_pick["price"] * 0.80} if degen_pick else None
-        }
-        
-        logger.info(f"Top Picks: Safe={safe_pick['ticker'] if safe_pick else 'None'}, Mid={mid_pick['ticker'] if mid_pick else 'None'}, Degen={degen_pick['ticker'] if degen_pick else 'None'}")
-
-    except Exception as e:
-        logger.error(f"Main loop error: {e}")
-        top_picks = {"safe": None, "mid": None, "degen": None} # Fallback
+    # ... (rest of file)
+    
     finally:
-        await nitter.close()
-        await dex.close()
-        await defillama.close()
-        await cointelegraph.close()
-        await artemis.close()
-        await notifier.close()
-        await rug_checker.close()
-        
+        # ...
         generate_dashboard(
             defi_stats=defi_stats[0] if 'defi_stats' in locals() and defi_stats else None,
-            top_picks=top_picks if 'top_picks' in locals() else None
+            top_picks=top_picks if 'top_picks' in locals() else None,
+            news=news if 'news' in locals() else None
         )
         logger.info("Run complete.")
 

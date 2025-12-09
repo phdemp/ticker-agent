@@ -58,3 +58,41 @@ class DexScreenerScraper(BaseScraper):
                 }
             })
         return results
+
+    def _process_pairs(self, pairs: List[Dict], limit: int) -> List[Dict[str, Any]]:
+        results = []
+        for pair in pairs[:limit]:
+            # Extract basic info
+            base_token = pair.get("baseToken", {})
+            info = pair.get("info", {})
+            
+            # Extract expanded metrics
+            price_change = pair.get("priceChange", {})
+            txns = pair.get("txns", {}).get("h24", {})
+            liquidity = pair.get("liquidity", {})
+            
+            results.append({
+                "platform": "dexscreener",
+                "ticker": base_token.get("symbol"), # Add top level ticker for ease
+                "name": base_token.get("name"),
+                "logo": info.get("imageUrl"), 
+                "price": pair.get("priceUsd"),
+                "price_change": {
+                    "h1": price_change.get("h1", 0),
+                    "h6": price_change.get("h6", 0),
+                    "h24": price_change.get("h24", 0),
+                },
+                "volume_profile": {
+                    "buys": txns.get("buys", 0),
+                    "sells": txns.get("sells", 0),
+                },
+                "url": pair.get("url"),
+                "metadata": {
+                    "chainId": pair.get("chainId"),
+                    "tokenAddress": base_token.get("address"),
+                    "liquidity": liquidity.get("usd"),
+                    "fdv": pair.get("fdv"),
+                    "pairAddress": pair.get("pairAddress")
+                }
+            })
+        return results

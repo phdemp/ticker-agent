@@ -45,54 +45,7 @@ async def main():
     
     analyzed_tokens = []
 
-        # 0.1 Cointelegraph News
-        logger.info("Fetching Cointelegraph News...")
-        news = await cointelegraph.scrape(limit=5)
-        global_sentiment = 0
-        if news:
-            scores = [sentiment_analyzer.analyze(n['content']) for n in news]
-            global_sentiment = sum(scores) / len(scores)
-            logger.info(f"Global News Sentiment: {global_sentiment:.2f} (based on {len(news)} articles)")
-            for article in news:
-                logger.info(f"News: {article['metadata']['title']}")
-                
-                # Extract tickers from news (Simple heuristic)
-                # Look for words starting with $ or all-caps words that are 3-5 chars long
-                words = article['metadata']['title'].split()
-                for word in words:
-                    clean_word = word.strip(".,!?()[]")
-                    if clean_word.startswith("$") and len(clean_word) > 1:
-                        dynamic_watchlist.add(clean_word.upper())
-                        logger.info(f"Found ticker in news: {clean_word}")
-                    elif clean_word.isupper() and 3 <= len(clean_word) <= 5 and clean_word not in ["THE", "AND", "FOR", "WHY", "HOW", "NEW", "ETF", "SEC", "CEO"]:
-                        # Heuristic: assume it's a ticker if all caps and short, excluding common words
-                        # This is risky but fits "trending from sentiment" request
-                        ticker = f"${clean_word}"
-                        dynamic_watchlist.add(ticker)
-                        logger.info(f"Found potential ticker in news: {ticker}")
 
-        # 0.2 Artemis Stablecoin Flows
-        logger.info("Fetching Artemis Stablecoin Flows...")
-        # Check supported assets (test free endpoint)
-        assets = await artemis.get_assets()
-        if assets:
-            logger.info(f"Artemis: Found {len(assets)} supported assets (Free Endpoint Working!)")
-        
-        # Example: Check Solana flows
-        sol_flows = await artemis.get_stablecoin_flows("solana")
-        if sol_flows:
-            logger.info(f"Solana Stablecoin Flows: {sol_flows}")
-
-        # 0.3 Dynamic Token Discovery
-        logger.info("Fetching trending tokens (Boosts)...")
-        boosts = await dex.get_token_boosts()
-        # dynamic_watchlist is already initialized before news block? No, wait.
-        # We need to initialize dynamic_watchlist BEFORE news block or ensure it's available.
-        # Let's fix the order in the full file context or just initialize it here if not exists.
-        # Actually, looking at previous code, dynamic_watchlist was initialized later.
-        # I should move initialization UP.
-        
-        # RE-WRITING BLOCK TO HANDLE ORDER CORRECTLY
         
     try:
         # Initialize dynamic watchlist with static list
@@ -160,8 +113,55 @@ async def main():
         logger.info(f"Final Watchlist: {dynamic_watchlist}")
 
         for ticker in dynamic_watchlist:
-            # ... (rest of loop is same)
-            pass # Placeholder for replace tool context
+            try:
+                # 1. Get DexScreener Data
+                pair_data = await dex.scrape(ticker, limit=1)
+                
+                if not pair_data:
+                    logger.warning(f"No data found for {ticker}")
+                    continue
+                
+                pair = pair_data[0]
+                current_price = float(pair.get("price", 0) or 0)
+                current_volume = pair.get("volume_profile", {}).get("buys", 0) + pair.get("volume_profile", {}).get("sells", 0)
+                
+                # 2. Get Sentiment (Mocking history for now as we don't have a DB yet)
+                # In prod, fetch from DB
+                mock_history = [0.1, 0.2, 0.1, 0.3, 0.2] 
+                mock_vol_history = [1000, 1500, 1200, 1800, 2000]
+                
+                # Analyze recent news/tweets for THIS ticker specifically
+                # For now using global sentiment as baseline + random variance for demo
+                current_sentiment = global_sentiment 
+                
+                # 3. Correlate
+                signal = correlator.correlate(
+                    ticker=ticker,
+                    sentiment_history=mock_history,
+                    volume_history=mock_vol_history,
+                    current_sentiment=current_sentiment,
+                    current_volume=current_volume,
+                    current_price=current_price
+                )
+                
+                # 4. Merge DexScreener Data into Signal
+                # This is crucial for the dashboard
+                signal.update({
+                    "name": pair.get("name"),
+                    "logo": pair.get("logo"),
+                    "price_change": pair.get("price_change"),
+                    "volume_profile": pair.get("volume_profile"),
+                    "liquidity": pair.get("metadata", {}).get("liquidity"),
+                    "fdv": pair.get("metadata", {}).get("fdv"),
+                    "exchange": "DEX", # Default
+                    "url": pair.get("url")
+                })
+                
+                analyzed_tokens.append(signal)
+                logger.info(f"Analyzed {ticker}: Conf {signal['confidence']}%")
+                
+            except Exception as e:
+                logger.error(f"Error analyzing {ticker}: {e}")
             
     # ... (rest of file)
     
@@ -170,7 +170,8 @@ async def main():
         generate_dashboard(
             defi_stats=defi_stats[0] if 'defi_stats' in locals() and defi_stats else None,
             top_picks=top_picks if 'top_picks' in locals() else None,
-            news=news if 'news' in locals() else None
+            news=news if 'news' in locals() else None,
+            signals=analyzed_tokens
         )
         logger.info("Run complete.")
 

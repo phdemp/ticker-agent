@@ -72,6 +72,7 @@ HTML_TEMPLATE = """
 """
 
 
+
 # Enhanced Card Template
 CARD_TEMPLATE = """
 <div class="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden hover:border-blue-500/50 transition-all">
@@ -90,12 +91,12 @@ CARD_TEMPLATE = """
         </div>
     </div>
 
-    <!-- Chart Area (Mini) -->
-    <div class="h-40 bg-gray-900 relative group">
-        <div id="tv_chart_{clean_ticker}" class="w-full h-full opacity-60 group-hover:opacity-100 transition-opacity"></div>
-        <button onclick="openChart('{exchange}', '{clean_ticker}')" class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-black/20 text-white font-bold text-sm tracking-wider transition-opacity">
-            EXPAND CHART
-        </button>
+    <!-- Chart Area (DexScreener Embed) -->
+    <div class="h-60 bg-gray-900 relative group">
+        <iframe 
+            src="https://dexscreener.com/{chain}/{pair_address}?embed=1&theme=dark" 
+            class="w-full h-full border-0"
+        ></iframe>
     </div>
 
     <!-- ML Confidence Section -->
@@ -140,28 +141,6 @@ CARD_TEMPLATE = """
             </div>
         </div>
     </div>
-    
-    <!-- Script for this card's chart -->
-    <script>
-    new TradingView.widget(
-    {{
-        "width": "100%",
-        "height": "100%",
-        "symbol": "{exchange}:{clean_ticker}USDT",
-        "interval": "60",
-        "timezone": "Etc/UTC",
-        "theme": "dark",
-        "style": "1",
-        "locale": "en",
-        "toolbar_bg": "#f1f3f6",
-        "enable_publishing": false,
-        "hide_top_toolbar": true,
-        "hide_legend": true,
-        "save_image": false,
-        "container_id": "tv_chart_{clean_ticker}"
-    }}
-    );
-    </script>
 </div>
 """
 
@@ -446,7 +425,6 @@ def generate_dashboard(defi_stats=None, top_picks=None, news=None, signals=None)
                 clean_ticker=clean_ticker,
                 name=s.get('name', ''),
                 logo=s.get('logo', ''),
-                exchange=s.get('exchange', 'BINANCE'), # Default to Binance for chart if unknown, or DEX mapping
                 price=f"{float(s.get('price') or 0):.4f}",
                 price_change_color=price_change_color,
                 price_change_24h=price_change_display,
@@ -457,7 +435,9 @@ def generate_dashboard(defi_stats=None, top_picks=None, news=None, signals=None)
                 target=f"{float(s.get('target', 0)):.4f}",
                 stop=f"{float(s.get('stop', 0)):.4f}",
                 risk_reward=s.get('risk_reward', 'N/A'),
-                buy_pressure=buy_pressure
+                buy_pressure=buy_pressure,
+                chain=s.get('chain', 'solana'), # Default
+                pair_address=s.get('pair_address', '')
             )
     else:
         cards_html = '<div class="col-span-full text-center text-gray-500 py-10">Waiting for signals...</div>'

@@ -114,8 +114,9 @@ async def main():
 
         for ticker in dynamic_watchlist:
             try:
-                # 1. Get DexScreener Data
-                pair_data = await dex.scrape(ticker, limit=1)
+                # 1. Get DexScreener Data (Clean ticker first)
+                search_query = ticker.lstrip("$")
+                pair_data = await dex.scrape(search_query, limit=1)
                 
                 if not pair_data:
                     logger.warning(f"No data found for {ticker}")
@@ -153,7 +154,8 @@ async def main():
                     "volume_profile": pair.get("volume_profile"),
                     "liquidity": pair.get("metadata", {}).get("liquidity"),
                     "fdv": pair.get("metadata", {}).get("fdv"),
-                    "exchange": "DEX", # Default
+                    "chain": pair.get("metadata", {}).get("chainId"),
+                    "pair_address": pair.get("metadata", {}).get("pairAddress"),
                     "url": pair.get("url")
                 })
                 

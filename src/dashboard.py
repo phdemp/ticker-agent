@@ -165,7 +165,205 @@ CARD_TEMPLATE = """
 </div>
 """
 
-# ... (Previous DEFI templates remain) 
+
+DEFI_STATS_TEMPLATE = """
+<div class="mb-8 grid grid-cols-1 md:grid-cols-3 gap-4">
+    <!-- Global TVL -->
+    <div class="bg-gray-800 p-4 rounded-lg border border-gray-700 text-center">
+        <h3 class="text-gray-400 text-sm uppercase tracking-wider mb-1">Global TVL</h3>
+        <p class="text-2xl font-bold text-blue-400">${tvl}</p>
+    </div>
+    
+    <!-- Stablecoin Mcap -->
+    <div class="bg-gray-800 p-4 rounded-lg border border-gray-700 text-center">
+        <h3 class="text-gray-400 text-sm uppercase tracking-wider mb-1">Stablecoin Mcap</h3>
+        <p class="text-2xl font-bold text-green-400">${stablecoins}</p>
+    </div>
+    
+    <!-- Top Yield -->
+    <div class="bg-gray-800 p-4 rounded-lg border border-gray-700 text-center">
+        <h3 class="text-gray-400 text-sm uppercase tracking-wider mb-1">Top Yield</h3>
+        <p class="text-xl font-bold text-yellow-400">{top_yield_apy:.0f}% APY</p>
+        <p class="text-xs text-gray-500">{top_yield_pool}</p>
+    </div>
+</div>
+
+<div class="mb-8 bg-gray-800 p-4 rounded-lg border border-gray-700">
+    <h3 class="text-lg font-bold mb-4 text-gray-300">🔥 Top Yield Pools</h3>
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left text-gray-400">
+            <thead class="text-xs text-gray-500 uppercase bg-gray-700">
+                <tr>
+                    <th class="px-4 py-2">Project</th>
+                    <th class="px-4 py-2">Chain</th>
+                    <th class="px-4 py-2">Symbol</th>
+                    <th class="px-4 py-2">APY</th>
+                    <th class="px-4 py-2">TVL</th>
+                </tr>
+            </thead>
+            <tbody>
+                {yield_rows}
+            </tbody>
+        </table>
+    </div>
+</div>
+"""
+
+YIELD_ROW_TEMPLATE = """
+<tr class="border-b border-gray-700 hover:bg-gray-700">
+    <td class="px-4 py-2 font-medium text-white">{project}</td>
+    <td class="px-4 py-2">{chain}</td>
+    <td class="px-4 py-2">{symbol}</td>
+    <td class="px-4 py-2 text-green-400 font-bold">{apy:.2f}%</td>
+    <td class="px-4 py-2">${tvl:,.0f}</td>
+</tr>
+"""
+
+TOP_PICKS_TEMPLATE = """
+<div class="mb-8">
+    <h2 class="text-2xl font-bold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">🎯 Top Picks of the Moment</h2>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Safe Pick -->
+        <div class="bg-gray-800 rounded-xl border border-green-500/30 p-6 relative overflow-hidden group hover:border-green-500 transition-all flex flex-col">
+            <div class="absolute top-0 right-0 bg-green-500/20 text-green-400 text-xs px-2 py-1 rounded-bl-lg font-bold">SAFE</div>
+            <h3 class="text-2xl font-bold text-white mb-1">{safe_ticker}</h3>
+            <p class="text-gray-400 text-sm mb-4">High Cap • Steady</p>
+            
+            <div class="flex justify-between items-end mb-4">
+                <div>
+                    <p class="text-xs text-gray-500">Sentiment</p>
+                    <p class="text-lg font-mono text-green-400">{safe_sent:.2f}</p>
+                </div>
+                <div class="text-right">
+                    <p class="text-xs text-gray-500">FDV</p>
+                    <p class="text-lg font-mono text-white">${safe_fdv}</p>
+                </div>
+            </div>
+
+            <div class="mt-auto">
+                <div class="border-t border-gray-700 pt-2 grid grid-cols-3 gap-2 text-xs text-center mb-3">
+                    <div>
+                        <p class="text-gray-500">Entry</p>
+                        <p class="text-blue-400 font-bold">${safe_entry}</p>
+                    </div>
+                    <div>
+                        <p class="text-gray-500">Target</p>
+                        <p class="text-green-400 font-bold">${safe_target}</p>
+                    </div>
+                    <div>
+                        <p class="text-gray-500">Stop</p>
+                        <p class="text-red-400 font-bold">${safe_stop}</p>
+                    </div>
+                </div>
+                <button onclick="openChart('BINANCE', '{safe_clean}')" class="w-full bg-gray-700 hover:bg-gray-600 text-white text-xs py-2 rounded transition-colors flex items-center justify-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" /></svg>
+                    View Chart
+                </button>
+            </div>
+        </div>
+
+        <!-- Mid Pick -->
+        <div class="bg-gray-800 rounded-xl border border-blue-500/30 p-6 relative overflow-hidden group hover:border-blue-500 transition-all flex flex-col">
+            <div class="absolute top-0 right-0 bg-blue-500/20 text-blue-400 text-xs px-2 py-1 rounded-bl-lg font-bold">MID</div>
+            <h3 class="text-2xl font-bold text-white mb-1">{mid_ticker}</h3>
+            <p class="text-gray-400 text-sm mb-4">Growth • Momentum</p>
+            
+            <div class="flex justify-between items-end mb-4">
+                <div>
+                    <p class="text-xs text-gray-500">Sentiment</p>
+                    <p class="text-lg font-mono text-blue-400">{mid_sent:.2f}</p>
+                </div>
+                <div class="text-right">
+                    <p class="text-xs text-gray-500">FDV</p>
+                    <p class="text-lg font-mono text-white">${mid_fdv}</p>
+                </div>
+            </div>
+
+            <div class="mt-auto">
+                <div class="border-t border-gray-700 pt-2 grid grid-cols-3 gap-2 text-xs text-center mb-3">
+                    <div>
+                        <p class="text-gray-500">Entry</p>
+                        <p class="text-blue-400 font-bold">${mid_entry}</p>
+                    </div>
+                    <div>
+                        <p class="text-gray-500">Target</p>
+                        <p class="text-green-400 font-bold">${mid_target}</p>
+                    </div>
+                    <div>
+                        <p class="text-gray-500">Stop</p>
+                        <p class="text-red-400 font-bold">${mid_stop}</p>
+                    </div>
+                </div>
+                <button onclick="openChart('BINANCE', '{mid_clean}')" class="w-full bg-gray-700 hover:bg-gray-600 text-white text-xs py-2 rounded transition-colors flex items-center justify-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" /></svg>
+                    View Chart
+                </button>
+            </div>
+        </div>
+
+        <!-- Degen Pick -->
+        <div class="bg-gray-800 rounded-xl border border-red-500/30 p-6 relative overflow-hidden group hover:border-red-500 transition-all flex flex-col">
+            <div class="absolute top-0 right-0 bg-red-500/20 text-red-400 text-xs px-2 py-1 rounded-bl-lg font-bold">DEGEN</div>
+            <h3 class="text-2xl font-bold text-white mb-1">{degen_ticker}</h3>
+            <p class="text-gray-400 text-sm mb-4">High Risk • Explosive</p>
+            
+            <div class="flex justify-between items-end mb-4">
+                <div>
+                    <p class="text-xs text-gray-500">Volume</p>
+                    <p class="text-lg font-mono text-red-400">{degen_vol}</p>
+                </div>
+                <div class="text-right">
+                    <p class="text-xs text-gray-500">FDV</p>
+                    <p class="text-lg font-mono text-white">${degen_fdv}</p>
+                </div>
+            </div>
+
+            <div class="mt-auto">
+                <div class="border-t border-gray-700 pt-2 grid grid-cols-3 gap-2 text-xs text-center mb-3">
+                    <div>
+                        <p class="text-gray-500">Entry</p>
+                        <p class="text-blue-400 font-bold">${degen_entry}</p>
+                    </div>
+                    <div>
+                        <p class="text-gray-500">Target</p>
+                        <p class="text-green-400 font-bold">${degen_target}</p>
+                    </div>
+                    <div>
+                        <p class="text-gray-500">Stop</p>
+                        <p class="text-red-400 font-bold">${degen_stop}</p>
+                    </div>
+                </div>
+                <button onclick="openChart('BINANCE', '{degen_clean}')" class="w-full bg-gray-700 hover:bg-gray-600 text-white text-xs py-2 rounded transition-colors flex items-center justify-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" /></svg>
+                    View Chart
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+"""
+
+NEWS_SECTION_TEMPLATE = """
+<div class="mb-8 bg-gray-800 p-6 rounded-lg border border-gray-700">
+    <h2 class="text-xl font-bold mb-4 text-orange-400 flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" /></svg>
+        Latest Crypto News
+    </h2>
+    <div class="space-y-4">
+        {news_items}
+    </div>
+</div>
+"""
+
+NEWS_ITEM_TEMPLATE = """
+<div class="border-b border-gray-700 pb-4 last:border-0 last:pb-0">
+    <a href="{url}" target="_blank" class="text-lg font-medium text-white hover:text-blue-400 transition-colors block mb-1">{title}</a>
+    <p class="text-sm text-gray-400 mb-2">{summary}</p>
+    <div class="flex items-center gap-2">
+        <span class="text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded">Cointelegraph</span>
+    </div>
+</div>
+"""
 
 def generate_dashboard(defi_stats=None, top_picks=None, news=None, signals=None):
     """Generates the index.html file in the public/ directory."""

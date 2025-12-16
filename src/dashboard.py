@@ -338,7 +338,7 @@ NEWS_SECTION_TEMPLATE = """
 NEWS_ITEM_TEMPLATE = """
 <div class="border-b border-gray-700 pb-4 last:border-0 last:pb-0 flex flex-col md:flex-row gap-4 items-start">
     <div class="w-full md:w-32 h-32 shrink-0 rounded-lg overflow-hidden bg-gray-700">
-        <img src="{image}" alt="News Image" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='https://via.placeholder.com/150/1f2937/4b5563?text=News';">
+        <img src="{image}" alt="News Image" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzE2MjEzZSI+PHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiBmaWxsPSIjMWYyOTM3Ii8+PHRleHQgeT0iNTAlIiB4PSI1MCUiIGR5PSIuM2VtIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNGI1NTYzIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSI0Ij5OZXdzPC90ZXh0Pjwvc3ZnPg==';">
     </div>
     <div class="flex-1">
         <a href="{url}" target="_blank" class="text-lg font-medium text-white hover:text-blue-400 transition-colors block mb-2 leading-tight">{title}</a>

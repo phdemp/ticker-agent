@@ -79,7 +79,7 @@ CARD_TEMPLATE = """
     <!-- Header -->
     <div class="p-4 border-b border-gray-700 bg-gray-800/50 flex justify-between items-start">
         <div class="flex items-center gap-3">
-            <img src="{logo}" alt="{ticker}" class="w-10 h-10 rounded-full bg-gray-700" onerror="this.src='https://via.placeholder.com/40'">
+            <img src="{logo}" alt="{ticker}" class="w-10 h-10 rounded-full bg-gray-700" onerror="this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0iIzM3NDE1MSI+PGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiLz48dGV4dCB4PSI1MCUiIHk9IjUwJSIgZHk9Ii4zZW0iIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5Q0EyQjIiIHN0eWxlPSJmb250LWZhbWlseTpzYW5zLXNlcmlmO2ZvbnQtc2l6ZToxMnB4Ij4/PC90ZXh0Pjwvc3ZnPg==';">
             <div>
                 <h2 class="text-lg font-bold text-white leading-none">{ticker}</h2>
                 <p class="text-xs text-gray-400">{name}</p>

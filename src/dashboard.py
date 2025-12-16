@@ -334,12 +334,19 @@ NEWS_SECTION_TEMPLATE = """
 </div>
 """
 
+
 NEWS_ITEM_TEMPLATE = """
-<div class="border-b border-gray-700 pb-4 last:border-0 last:pb-0">
-    <a href="{url}" target="_blank" class="text-lg font-medium text-white hover:text-blue-400 transition-colors block mb-1">{title}</a>
-    <p class="text-sm text-gray-400 mb-2">{summary}</p>
-    <div class="flex items-center gap-2">
-        <span class="text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded">Cointelegraph</span>
+<div class="border-b border-gray-700 pb-4 last:border-0 last:pb-0 flex flex-col md:flex-row gap-4 items-start">
+    <div class="w-full md:w-32 h-32 shrink-0 rounded-lg overflow-hidden bg-gray-700">
+        <img src="{image}" alt="News Image" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='https://via.placeholder.com/150/1f2937/4b5563?text=News';">
+    </div>
+    <div class="flex-1">
+        <a href="{url}" target="_blank" class="text-lg font-medium text-white hover:text-blue-400 transition-colors block mb-2 leading-tight">{title}</a>
+        <p class="text-sm text-gray-400 mb-3 line-clamp-3">{summary}</p>
+        <div class="flex items-center gap-2">
+            <span class="text-xs bg-orange-500/10 text-orange-400 px-2 py-0.5 rounded border border-orange-500/20">Cointelegraph</span>
+            <span class="text-xs text-gray-500">• Just now</span>
+        </div>
     </div>
 </div>
 """
@@ -449,8 +456,9 @@ def generate_dashboard(defi_stats=None, top_picks=None, news=None, signals=None)
         for article in news:
             news_items += NEWS_ITEM_TEMPLATE.format(
                 title=article['metadata']['title'],
-                summary=article['metadata']['summary'][:150] + "...",
+                summary=article['metadata']['summary'][:200] + "...",
                 url=article['url'],
+                image=article['metadata'].get('image', ''),
                 sentiment="Neutral"
             )
         news_html = NEWS_SECTION_TEMPLATE.format(news_items=news_items)

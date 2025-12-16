@@ -36,6 +36,13 @@ class CointelegraphScraper(BaseScraper):
             # Extract tags if available
             tags = [tag.term for tag in entry.get('tags', [])]
             
+            # Extract image
+            image_url = None
+            if 'media_content' in entry:
+                image_url = entry.media_content[0].get('url')
+            elif 'enclosures' in entry:
+                image_url = entry.enclosures[0].get('href')
+            
             results.append({
                 "platform": "cointelegraph",
                 "user": entry.get("author", "Cointelegraph"),
@@ -45,7 +52,8 @@ class CointelegraphScraper(BaseScraper):
                 "metadata": {
                     "title": entry.title,
                     "summary": entry.description,
-                    "tags": tags
+                    "tags": tags,
+                    "image": image_url
                 }
             })
         return results

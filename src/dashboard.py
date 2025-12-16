@@ -96,6 +96,7 @@ CARD_TEMPLATE = """
         <iframe 
             src="https://dexscreener.com/{chain}/{pair_address}?embed=1&theme=dark" 
             class="w-full h-full border-0"
+            loading="lazy"
         ></iframe>
     </div>
 

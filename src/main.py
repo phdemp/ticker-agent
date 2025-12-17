@@ -151,6 +151,7 @@ async def main():
                 signal.update({
                     "name": pair.get("name"),
                     "logo": pair.get("logo"),
+                    "price": current_price, # Added price to signal
                     "price_change": pair.get("price_change"),
                     "volume_profile": pair.get("volume_profile"),
                     "liquidity": pair.get("metadata", {}).get("liquidity"),

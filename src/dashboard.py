@@ -94,7 +94,7 @@ CARD_TEMPLATE = """
     <!-- Chart Area (DexScreener Embed) -->
     <div class="h-60 bg-gray-900 relative group">
         <iframe 
-            src="https://dexscreener.com/{chain}/{pair_address}?embed=1&theme=dark&timezone=UTC" 
+            src="https://dexscreener.com/{chain}/{pair_address}?embed=1&theme=dark&timezone=Etc%2FUTC" 
             class="w-full h-full border-0"
             loading="lazy"
             referrerpolicy="origin"

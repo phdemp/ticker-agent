@@ -39,25 +39,7 @@ class DexScreenerScraper(BaseScraper):
             self.log_error(f"Boosts fetch error: {e}")
             return []
 
-    def _process_pairs(self, pairs: List[Dict], limit: int) -> List[Dict[str, Any]]:
-        results = []
-        for pair in pairs[:limit]:
-            results.append({
-                "platform": "dexscreener",
-                "user": "market",
-                "content": f"Price: {pair.get('priceUsd')} | Vol24h: {pair.get('volume', {}).get('h24')}",
-                "timestamp": None, # Real-time
-                "url": pair.get("url"),
-                "metadata": {
-                    "chainId": pair.get("chainId"),
-                    "symbol": pair.get("baseToken", {}).get("symbol"),
-                    "tokenAddress": pair.get("baseToken", {}).get("address"),
-                    "liquidity": pair.get("liquidity", {}).get("usd"),
-                    "fdv": pair.get("fdv"),
-                    "txns": pair.get("txns", {}).get("h24")
-                }
-            })
-        return results
+
 
     def _process_pairs(self, pairs: List[Dict], limit: int) -> List[Dict[str, Any]]:
         results = []

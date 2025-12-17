@@ -123,6 +123,7 @@ async def main():
                     continue
                 
                 pair = pair_data[0]
+                logger.debug(f"DEBUG: Pair data for {ticker}: {pair}")
                 current_price = float(pair.get("price", 0) or 0)
                 current_volume = pair.get("volume_profile", {}).get("buys", 0) + pair.get("volume_profile", {}).get("sells", 0)
                 

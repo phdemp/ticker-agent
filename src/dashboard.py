@@ -430,20 +430,41 @@ def generate_dashboard(defi_stats=None, top_picks=None, news=None, signals=None)
             total_vol = buys + sells
             buy_pressure = (buys / total_vol * 100) if total_vol > 0 else 50
             
+            # Dynamic Price Formatting
+            p_val = float(s.get('price') or 0)
+            if p_val < 0.01 and p_val > 0:
+                price_display = f"{p_val:.8f}"
+            else:
+                price_display = f"{p_val:.4f}"
+            
+            # Dynamic Target/Stop Formatting
+            entry_val = float(s.get('entry', 0))
+            target_val = float(s.get('target', 0))
+            stop_val = float(s.get('stop', 0))
+            
+            if entry_val < 0.01 and entry_val > 0:
+                entry_display = f"{entry_val:.8f}"
+                target_display = f"{target_val:.8f}"
+                stop_display = f"{stop_val:.8f}"
+            else:
+                entry_display = f"{entry_val:.4f}"
+                target_display = f"{target_val:.4f}"
+                stop_display = f"{stop_val:.4f}"
+
             cards_html += CARD_TEMPLATE.format(
                 ticker=ticker,
                 clean_ticker=clean_ticker,
                 name=s.get('name', ''),
                 logo=s.get('logo', ''),
-                price=f"{float(s.get('price') or 0):.4f}",
+                price=price_display, # formatted price
                 price_change_color=price_change_color,
                 price_change_24h=price_change_display,
                 confidence=conf,
                 conf_color=conf_color,
                 conf_gradient=conf_gradient,
-                entry=f"{float(s.get('entry', 0)):.4f}",
-                target=f"{float(s.get('target', 0)):.4f}",
-                stop=f"{float(s.get('stop', 0)):.4f}",
+                entry=entry_display,
+                target=target_display,
+                stop=stop_display,
                 risk_reward=s.get('risk_reward', 'N/A'),
                 buy_pressure=buy_pressure,
                 chain=s.get('chain', 'solana'), # Default

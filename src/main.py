@@ -132,25 +132,36 @@ async def main():
                 mock_history = [0.1, 0.2, 0.1, 0.3, 0.2] 
                 mock_vol_history = [1000, 1500, 1200, 1800, 2000]
                 
-                # Analyze recent news/tweets for THIS ticker specifically
-                # For now using global sentiment as baseline + random variance for demo
-                current_sentiment = global_sentiment 
-                
+                # Mock Price History for Indicators (until we have real historical data)
+                # Creating a synthetic trend based on current price to allow indicators to calculate
+                p = current_price
+                mock_price_history = [p*0.9, p*0.92, p*0.95, p*0.94, p*0.96, p*0.98, p*0.97, p*0.99, p*1.0, p*1.01, p*1.0, p*1.02, p, p]
+
                 # 3. Correlate
                 signal = correlator.correlate(
                     ticker=ticker,
                     sentiment_history=mock_history,
                     volume_history=mock_vol_history,
+                    price_history=mock_price_history,
                     current_sentiment=current_sentiment,
                     current_volume=current_volume,
                     current_price=current_price
                 )
                 
                 # 4. Merge DexScreener Data into Signal
-                # This is crucial for the dashboard
+                # Fix for broken icons on major tokens
+                logo_url = pair.get("logo")
+                if not logo_url:
+                    if "BTC" in ticker.upper():
+                        logo_url = "https://cryptologos.cc/logos/bitcoin-btc-logo.png"
+                    elif "ETH" in ticker.upper():
+                        logo_url = "https://cryptologos.cc/logos/ethereum-eth-logo.png"
+                    elif "SOL" in ticker.upper():
+                        logo_url = "https://cryptologos.cc/logos/solana-sol-logo.png"
+
                 signal.update({
                     "name": pair.get("name"),
-                    "logo": pair.get("logo"),
+                    "logo": logo_url,
                     "price": current_price, # Added price to signal
                     "price_change": pair.get("price_change"),
                     "volume_profile": pair.get("volume_profile"),

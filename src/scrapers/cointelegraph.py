@@ -42,36 +42,43 @@ class CointelegraphScraper(BaseScraper):
             
         try:
             # Check if it looks like the proxy URL we know
-            if "images.cointelegraph.com/images" in proxy_url and "_" in proxy_url:
-                # Extract the base64 part: everything between the first '_' and the last '.'
-                # Example: .../images/528_aHR0cHM... .jpg
-                
-                # Split by last '/' to get filename
+            if "images.cointelegraph.com/images" in proxy_url:
+                # The Base64 string is usually the longest part of the filename
                 filename = proxy_url.split('/')[-1]
                 
-                # Find the underscore separating size and content
-                if '_' in filename:
-                    parts = filename.split('_', 1)
-                    if len(parts) == 2:
-                        b64_part = parts[1]
-                        # Remove file extension if present (though base64 decoding might handle it if padding is correct, better safe)
-                        if '.' in b64_part:
-                            b64_part = b64_part.rsplit('.', 1)[0]
-                            
-                        # Fix padding if necessary (len must be multiple of 4)
-                        padding = len(b64_part) % 4
-                        if padding:
-                            b64_part += '=' * (4 - padding)
-                            
-                        # Decode
-                        decoded_url = base64.urlsafe_b64decode(b64_part).decode('utf-8')
+                # Remove extension
+                if '.' in filename:
+                    filename = filename.rsplit('.', 1)[0]
+                
+                # Split by underscore. The base64 part should be the last part usually, 
+                # or we can try to decode each part.
+                parts = filename.split('_')
+                
+                # Iterate through parts to find the one that decodes to a valid URL
+                for part in parts:
+                    if len(part) < 20: # Skip short parts like "528"
+                        continue
                         
-                        # Verify it looks like a URL
-                        if decoded_url.startswith('http'):
-                            return decoded_url
+                    try:
+                        # Fix padding
+                        padding = len(part) % 4
+                        if padding:
+                            part += '=' * (4 - padding)
+                            
+                        # Try decoding with standard b64decode (more common for this usage)
+                        # We use standard because the string might contain '+' or '/' mapped to base64 chars
+                        # URLSafe is alternate alphabet. Let's try both if one fails.
+                        decoded = None
+                        try:
+                            decoded = base64.urlsafe_b64decode(part).decode('utf-8')
+                        except:
+                            decoded = base64.b64decode(part).decode('utf-8')
+                            
+                        if decoded and decoded.startswith('http'):
+                            return decoded
+                    except:
+                        continue
         except Exception:
-            # If anything fails, return the original or None, but let's stick to original 
-            # so we don't break working ones that we just failed to parse.
             pass
             
         return proxy_url

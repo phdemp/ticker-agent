@@ -8,7 +8,7 @@ import traceback
 sys.path.append(os.path.abspath("src"))
 
 async def main():
-    with open("execution.log", "w") as f:
+    with open("execution.log", "w", encoding="utf-8") as f:
         try:
             f.write("Starting fix script...\n")
             from scrapers.cointelegraph import CointelegraphScraper
@@ -23,7 +23,13 @@ async def main():
             
             for article in news:
                 img = article['metadata']['image']
+                summary = article['metadata']['summary']
                 f.write(f"Image: {img}\n")
+                f.write(f"Summary (first 100 chars): {summary[:100]}...\n")
+                if "<" in summary and ">" in summary:
+                     f.write("  -> WARNING: Summary might still contain HTML tags!\n")
+                else:
+                     f.write("  -> VERIFIED CLEAN SUMMARY\n")
             
             generate_dashboard(news=news)
             f.write("Dashboard updated.\n")

@@ -84,6 +84,8 @@ class CointelegraphScraper(BaseScraper):
         return proxy_url
 
     def _process_feed(self, entries: List[Any], limit: int) -> List[Dict[str, Any]]:
+        from bs4 import BeautifulSoup
+        
         results = []
         for entry in entries[:limit]:
             # Extract tags if available
@@ -100,15 +102,23 @@ class CointelegraphScraper(BaseScraper):
             if image_url:
                 image_url = self._extract_original_image_url(image_url)
             
+            # Clean summary text (remove HTML tags)
+            summary_text = entry.description
+            try:
+                soup = BeautifulSoup(entry.description, "html.parser")
+                summary_text = soup.get_text(separator=' ', strip=True)
+            except Exception as e:
+                self.log_error(f"Error cleaning summary: {e}")
+
             results.append({
                 "platform": "cointelegraph",
                 "user": entry.get("author", "Cointelegraph"),
-                "content": f"{entry.title} - {entry.description}",
+                "content": f"{entry.title} - {summary_text}",
                 "timestamp": entry.get("published"),
                 "url": entry.link,
                 "metadata": {
                     "title": entry.title,
-                    "summary": entry.description,
+                    "summary": summary_text,
                     "tags": tags,
                     "image": image_url
                 }

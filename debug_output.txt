@@ -1,0 +1,15 @@
+Successfully imported CointelegraphScraper
+Testing URL: https://images.cointelegraph.com/images/528_aHR0cHM6Ly9zMy5jb2ludGVsZWdyYXBoLmNvbS91cGxvYWRzLzIwMjUtMTIvMDE5YjJmNDItOTQzMi03OWIyLThkZDEtN2ZlZjg0OTA4ZTBmLmpwZw==.jpg
+Filename: 528_aHR0cHM6Ly9zMy5jb2ludGVsZWdyYXBoLmNvbS91cGxvYWRzLzIwMjUtMTIvMDE5YjJmNDItOTQzMi03OWIyLThkZDEtN2ZlZjg0OTA4ZTBmLmpwZw==.jpg
+Filename no ext: 528_aHR0cHM6Ly9zMy5jb2ludGVsZWdyYXBoLmNvbS91cGxvYWRzLzIwMjUtMTIvMDE5YjJmNDItOTQzMi03OWIyLThkZDEtN2ZlZjg0OTA4ZTBmLmpwZw==
+Parts: ['528', 'aHR0cHM6Ly9zMy5jb2ludGVsZWdyYXBoLmNvbS91cGxvYWRzLzIwMjUtMTIvMDE5YjJmNDItOTQzMi03OWIyLThkZDEtN2ZlZjg0OTA4ZTBmLmpwZw==']
+
+Checking part 0: 528...
+Skipping (<20)
+
+Checking part 1: aHR0cHM6Ly9zMy5jb2lu...
+Length: 116, Padding needed: 0
+Decoded (urlsafe): https://s3.cointelegraph.com/uploads/2025-12/019b2...
+SUCCESS MATCH: https://s3.cointelegraph.com/uploads/2025-12/019b2f42-9432-79b2-8dd1-7fef84908e0f.jpg
+
+Final Class Method Result: https://s3.cointelegraph.com/uploads/2025-12/019b2f42-9432-79b2-8dd1-7fef84908e0f.jpg

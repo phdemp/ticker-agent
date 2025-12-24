@@ -138,6 +138,9 @@ async def main():
                 mock_price_history = [p*0.9, p*0.92, p*0.95, p*0.94, p*0.96, p*0.98, p*0.97, p*0.99, p*1.0, p*1.01, p*1.0, p*1.02, p, p]
 
                 # 3. Correlate
+                # Use global sentiment as proxy for current sentiment for now
+                current_sentiment = global_sentiment
+                
                 signal = correlator.correlate(
                     ticker=ticker,
                     sentiment_history=mock_history,
@@ -177,6 +180,36 @@ async def main():
                 
             except Exception as e:
                 logger.error(f"Error analyzing {ticker}: {e}")
+
+        # Sort signals by confidence
+        analyzed_tokens.sort(key=lambda x: x.get('confidence', 0), reverse=True)
+        
+        # Determine Top Picks
+        top_picks = {
+            "safe": {},
+            "mid": {},
+            "degen": {}
+        }
+        
+        # Helper to find best token in a list of tickers
+        def find_best(tickers):
+            candidates = [s for s in analyzed_tokens if s['ticker'] in tickers or s['ticker'].replace('$', '') in tickers]
+            if candidates:
+                return candidates[0]
+            return {}
+
+        # Safe: BTC, ETH, SOL
+        top_picks['safe'] = find_best(['$BTC', '$ETH', '$SOL', 'BTC', 'ETH', 'SOL'])
+        
+        # Mid: JUP, PYTH, WIF, BONK
+        top_picks['mid'] = find_best(['$JUP', '$PYTH', '$WIF', '$BONK', 'JUP', 'PYTH', 'WIF', 'BONK'])
+        
+        # Degen: Anything else with high confidence
+        safe_mid_tickers = ['$BTC', '$ETH', '$SOL', 'BTC', 'ETH', 'SOL', '$JUP', '$PYTH', '$WIF', '$BONK', 'JUP', 'PYTH', 'WIF', 'BONK']
+        degen_candidates = [s for s in analyzed_tokens if s['ticker'] not in safe_mid_tickers and s['ticker'].replace('$', '') not in safe_mid_tickers]
+        
+        if degen_candidates:
+            top_picks['degen'] = degen_candidates[0]
             
     # ... (rest of file)
     

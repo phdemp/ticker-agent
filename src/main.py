@@ -52,7 +52,14 @@ async def main():
         dynamic_watchlist = set(WATCHLIST)
 
         # 0. Scrape Global DeFi Stats
-        logger.info("Fetching Global DeFi Stats...")
+        logger.info("Fetching Global DeFi Stats & Stablecoin Flows...")
+        try:
+             stablecoin_chains = await defillama.get_stablecoin_chains()
+             logger.info(f"Fetched stablecoin data for {len(stablecoin_chains)} chains.")
+        except Exception as e:
+             logger.error(f"Failed to fetch stablecoin stats: {e}")
+             stablecoin_chains = []
+
         defi_stats = await defillama.scrape()
         if defi_stats:
             logger.info(f"Global TVL: ${defi_stats[0]['tvl']:,.2f}")
@@ -141,6 +148,9 @@ async def main():
                 # Use global sentiment as proxy for current sentiment for now
                 current_sentiment = global_sentiment
                 
+                # Extract chain info for ML boosting
+                chain_slug = pair.get("metadata", {}).get("chainId", "")
+
                 signal = correlator.correlate(
                     ticker=ticker,
                     sentiment_history=mock_history,
@@ -148,7 +158,9 @@ async def main():
                     price_history=mock_price_history,
                     current_sentiment=current_sentiment,
                     current_volume=current_volume,
-                    current_price=current_price
+                    current_price=current_price,
+                    chain=chain_slug,
+                    chain_flows=stablecoin_chains
                 )
                 
                 # 4. Merge DexScreener Data into Signal
@@ -219,7 +231,8 @@ async def main():
             defi_stats=defi_stats[0] if 'defi_stats' in locals() and defi_stats else None,
             top_picks=top_picks if 'top_picks' in locals() else None,
             news=news if 'news' in locals() else None,
-            signals=analyzed_tokens
+            signals=analyzed_tokens,
+            stablecoin_flows=stablecoin_chains
         )
         logger.info("Run complete.")
 

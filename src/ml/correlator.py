@@ -7,7 +7,7 @@ class SignalCorrelator:
     def __init__(self):
         pass
 
-    def correlate(self, ticker: str, sentiment_history: List[float], volume_history: List[float], price_history: List[float], current_sentiment: float, current_volume: float, current_price: float = 0.0) -> Dict:
+    def correlate(self, ticker: str, sentiment_history: List[float], volume_history: List[float], price_history: List[float], current_sentiment: float, current_volume: float, current_price: float = 0.0, chain: str = "", chain_flows: List[Dict] = None) -> Dict:
         """
         Analyzes if there is a correlation between sentiment, volume spikes, and technical indicators.
         Returns a signal dict with entry/exit levels.
@@ -40,7 +40,27 @@ class SignalCorrelator:
         # MACD Bullish Crossover (Hist > 0)
         if macd_data["hist"] > 0:
              confidence_score += 10
-             
+        
+        # BOOST: Stablecoin Inflows (Chain Ecosystem Growth)
+        # If the chain is receiving massive stablecoin inflows, tokens on it are likely to pump.
+        inflow_boost = 0
+        if chain and chain_flows:
+            # find chain stats
+            # Normalize chain names roughly (e.g. 'solana' -> 'Solana')
+            chain_stat = next((c for c in chain_flows if c['chain'].lower() == chain.lower()), None)
+            if chain_stat:
+                net_flow = chain_stat.get('change_7d', 0)
+                if net_flow > 50_000_000: # > $50M inflow
+                    inflow_boost = 15
+                elif net_flow > 10_000_000: # > $10M inflow
+                    inflow_boost = 10
+                elif net_flow > 0:
+                    inflow_boost = 5
+                    
+                if inflow_boost > 0:
+                     confidence_score += inflow_boost
+                     logger.info(f"BOOST: {ticker} on {chain} gets +{inflow_boost} conf due to stablecoin inflows (${net_flow/1_000_000:.1f}M)")
+
         # Cap at 99
         confidence_score = min(confidence_score, 99.0)
             

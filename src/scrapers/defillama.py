@@ -56,4 +56,71 @@ class DeFiLlamaScraper(BaseScraper):
         except Exception as e:
             self.log_error(f"Scrape error: {e}")
             
-        return [results] # Return as list to match BaseScraper interface
+    async def get_stablecoin_chains(self) -> List[Dict[str, Any]]:
+        """
+        Fetches stablecoin market cap and 7d change by chain.
+        Returns list of dicts: {'chain': 'Solana', 'total': 123456, 'change_7d': 5000, 'pct_7d': 5.2}
+        """
+        results = {}
+        
+        try:
+            # Fetch all stablecoins with price/chain data
+            url = f"{self.stablecoins_url}/stablecoins?includePrices=true"
+            response = await self.client.get(url)
+            
+            if response.status_code == 200:
+                data = response.json()
+                pegged = data.get("peggedAssets", [])
+                
+                # We want to aggregate by chain
+                chain_stats = {} 
+                
+                for asset in pegged:
+                    # check if significant (e.g. > $10m mcap) to avoid noise
+                    if asset.get("circulating", {}).get("peggedUSD", 0) < 10_000_000:
+                        continue
+                        
+                    # chainCirculating is a dict: { "Ethereum": { "current": {...}, "circulatingPrevWeek": {...} } }
+                    chain_data = asset.get("chainCirculating", {})
+                    
+                    for chain_name, periods in chain_data.items():
+                        current_amt = periods.get("current", {}).get("peggedUSD", 0) or 0
+                        prev_week_amt = periods.get("circulatingPrevWeek", {}).get("peggedUSD", 0) or 0
+                        
+                        if chain_name not in chain_stats:
+                            chain_stats[chain_name] = {"current": 0.0, "prev_week": 0.0}
+                        
+                        chain_stats[chain_name]["current"] += current_amt
+                        chain_stats[chain_name]["prev_week"] += prev_week_amt
+                
+                # Calculate changes
+                final_list = []
+                for chain, stats in chain_stats.items():
+                   curr = stats["current"]
+                   prev = stats["prev_week"]
+                   if curr > 0: # Only active chains
+                       change_7d = curr - prev
+                       pct_7d = (change_7d / prev * 100) if prev > 0 else 0
+                       
+                       # Filter out tiny chains or errors
+                       if curr > 1_000_000:
+                           final_list.append({
+                               "chain": chain,
+                               "total": curr,
+                               "change_7d": change_7d,
+                               "pct_7d": pct_7d
+                           })
+                
+                # Sort by 7d change (growth)
+                final_list.sort(key=lambda x: x["change_7d"], reverse=True)
+                return final_list
+
+        except Exception as e:
+            self.log_error(f"Stablecoin chains error: {e}")
+            
+        return []
+
+    def scrape(self, query: str = "", limit: int = 5):
+        # ... (keep existing scrape wrapper or leave it be, we are adding a new method)
+        return super().scrape(query, limit) # Just a placeholder if I need to touch it
+

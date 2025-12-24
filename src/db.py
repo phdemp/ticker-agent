@@ -53,6 +53,37 @@ def init_db():
             label VARCHAR
         )
     """)
+
+    # Portfolio table (Paper Trading)
+    con.execute("""
+        CREATE TABLE IF NOT EXISTS portfolio (
+            asset VARCHAR PRIMARY KEY,
+            balance DOUBLE,
+            last_updated TIMESTAMP
+        )
+    """)
+    # Initialize USD balance if empty
+    res = con.execute("SELECT count(*) FROM portfolio WHERE asset='USD'").fetchone()
+    if res[0] == 0:
+        con.execute("INSERT INTO portfolio VALUES ('USD', 10000.0, current_timestamp)")
+
+    # Trades table (Paper Trading)
+    con.execute("""
+        CREATE TABLE IF NOT EXISTS trades (
+            id VARCHAR PRIMARY KEY,
+            ticker VARCHAR,
+            entry_price DOUBLE,
+            amount DOUBLE, 
+            entry_time TIMESTAMP,
+            status VARCHAR, -- 'OPEN', 'CLOSED'
+            exit_price DOUBLE,
+            exit_time TIMESTAMP,
+            pnl DOUBLE,
+            pnl_pct DOUBLE,
+            confidence_at_entry DOUBLE,
+            notes VARCHAR
+        )
+    """)
     
     con.close()
     logger.info("Database initialized.")

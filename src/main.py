@@ -14,6 +14,8 @@ from ml.correlator import SignalCorrelator
 from notifications import DiscordNotifier
 from safety.rugcheck import RugCheck
 from dashboard import generate_dashboard
+from agents.researcher import WebResearcher
+from trader.paper import PaperTrader
 
 load_dotenv()
 
@@ -42,6 +44,10 @@ async def main():
     correlator = SignalCorrelator()
     notifier = DiscordNotifier(DISCORD_WEBHOOK)
     rug_checker = RugCheck()
+    
+    # New Agents
+    researcher = WebResearcher()
+    trader = PaperTrader()
     
     analyzed_tokens = []
 
@@ -187,11 +193,54 @@ async def main():
                     "url": pair.get("url")
                 })
                 
+                # --- AGENTIC ACTION: Paper Trading ---
+                # A. Check if high confidence (> 80)
+                if signal["confidence"] >= 80:
+                    logger.info(f"HIGH CONFIDENCE for {ticker}. Initiating Research...")
+                    
+                    # B. Web Research
+                    research_result = researcher.verify_signal(ticker)
+                    if research_result["verified"]:
+                        logger.info(f"RESEARCH CLEARED {ticker}: {research_result['notes']}")
+                        
+                        # C. Execute Trade (Paper)
+                        # Position sizing: $1000 fixed for now
+                        trader.open_trade(
+                            ticker=ticker,
+                            price=current_price,
+                            amount_usd=1000.0,
+                            confidence=signal["confidence"],
+                            notes=f"Auto-trade. Research: {research_result['notes']}"
+                        )
+                    else:
+                        logger.warning(f"TRADE ABORTED {ticker}: {research_result['risk_level']} Risk - {research_result['notes']}")
+                        # Penalize confidence
+                        signal["confidence"] -= 20
+                
                 analyzed_tokens.append(signal)
                 logger.info(f"Analyzed {ticker}: Conf {signal['confidence']}%")
                 
             except Exception as e:
                 logger.error(f"Error analyzing {ticker}: {e}")
+
+        # --- AGENTIC ACTION: Manage Portfolio ---
+        # Update active trades
+        try:
+             # Create a price map for the trader
+             current_prices = {}
+             for t in analyzed_tokens:
+                 current_prices[t['ticker'].replace("$", "").upper()] = t['price']
+             
+             trader.check_trades(current_prices)
+             
+             # Fetch Portfolio for Dashboard
+             portfolio_data = {
+                 "balance_usd": trader.get_balance("USD"),
+                 "active_trades": trader.get_active_trades()
+             }
+        except Exception as e:
+             logger.error(f"Portfolio update failed: {e}")
+             portfolio_data = {}
 
         # Sort signals by confidence
         analyzed_tokens.sort(key=lambda x: x.get('confidence', 0), reverse=True)
@@ -232,7 +281,8 @@ async def main():
             top_picks=top_picks if 'top_picks' in locals() else None,
             news=news if 'news' in locals() else None,
             signals=analyzed_tokens,
-            stablecoin_flows=stablecoin_chains
+            stablecoin_flows=stablecoin_chains,
+            portfolio=portfolio_data if 'portfolio_data' in locals() else None
         )
         logger.info("Run complete.")
 

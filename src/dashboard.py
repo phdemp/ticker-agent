@@ -387,7 +387,56 @@ FLOW_ROW_TEMPLATE = """
 </tr>
 """
 
-def generate_dashboard(defi_stats=None, top_picks=None, news=None, signals=None, stablecoin_flows=None):
+PORTFOLIO_TEMPLATE = """
+<div class="mb-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+    <!-- Balance Card -->
+    <div class="bg-gray-800 p-6 rounded-lg border border-gray-700 relative overflow-hidden">
+        <div class="absolute top-0 right-0 p-4 opacity-10">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-24 w-24 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+        </div>
+        <h3 class="text-sm uppercase text-gray-400 font-semibold mb-2">Paper Portfolio Balance</h3>
+        <div class="text-4xl font-bold text-white mb-1">${balance:,.2f}</div>
+        <div class="text-sm text-green-400 flex items-center gap-1">
+            <span class="bg-green-500/10 px-2 py-0.5 rounded">Active Trading</span>
+        </div>
+    </div>
+
+    <!-- Active Trades -->
+    <div class="bg-gray-800 p-6 rounded-lg border border-gray-700">
+        <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
+            Active Positions
+        </h3>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left text-gray-400">
+                <thead class="text-xs text-gray-500 uppercase bg-gray-700">
+                    <tr>
+                        <th class="px-4 py-2">Ticker</th>
+                        <th class="px-4 py-2">Entry</th>
+                        <th class="px-4 py-2">Amount</th>
+                        <th class="px-4 py-2">Conf</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {trade_rows}
+                </tbody>
+            </table>
+            {empty_msg}
+        </div>
+    </div>
+</div>
+"""
+
+TRADE_ROW_TEMPLATE = """
+<tr class="border-b border-gray-700">
+    <td class="px-4 py-2 font-bold text-white">{ticker}</td>
+    <td class="px-4 py-2">${entry:.4f}</td>
+    <td class="px-4 py-2">{amount:.2f}</td>
+    <td class="px-4 py-2 text-blue-400">{conf}%</td>
+</tr>
+"""
+
+def generate_dashboard(defi_stats=None, top_picks=None, news=None, signals=None, stablecoin_flows=None, portfolio=None):
     """Generates the index.html file in the public/ directory."""
     cwd = os.getcwd()
     public_dir = os.path.join(cwd, "public")
@@ -561,9 +610,41 @@ def generate_dashboard(defi_stats=None, top_picks=None, news=None, signals=None,
              )
         flows_html = STABLECOIN_FLOWS_TEMPLATE.format(rows=flow_rows)
 
+    # 6. Portfolio HTML (Agent)
+    portfolio_html = ""
+    if portfolio:
+        trade_rows = ""
+        trades = portfolio.get('active_trades', [])
+        
+        if trades:
+            # trades is list of tuples: (id, ticker, entry, amount, entry_time, status, ...)
+            # We only need ticker, entry, amount, and maybe confidence (which is at index 10)
+            for t in trades:
+                # Basic tuple unpacking based on db schema
+                ticker = t[1]
+                entry = t[2]
+                amount = t[3]
+                conf = int(t[10]) if len(t) > 10 else 0
+                
+                trade_rows += TRADE_ROW_TEMPLATE.format(
+                    ticker=ticker,
+                    entry=entry,
+                    amount=amount,
+                    conf=conf
+                )
+            empty_msg = ""
+        else:
+            empty_msg = '<div class="p-4 text-center text-gray-500 italic">No active trades yet. Waiting for opportunities...</div>'
+            
+        portfolio_html = PORTFOLIO_TEMPLATE.format(
+            balance=portfolio.get('balance_usd', 0),
+            trade_rows=trade_rows,
+            empty_msg=empty_msg
+        )
+
     # Combine everything
     html = HTML_TEMPLATE.format(
-        cards=picks_html + defi_html + flows_html + news_html + cards_html,
+        cards=picks_html + portfolio_html + defi_html + flows_html + news_html + cards_html,
         timestamp="Just now"
     )
     

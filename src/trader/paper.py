@@ -9,7 +9,7 @@ class PaperTrader:
         self.con = duckdb.connect(DB_PATH)
         
     def get_balance(self, asset="USD"):
-        res = self.con.execute(f"SELECT balance FROM portfolio WHERE asset='{asset}'").fetchone()
+        res = self.con.execute("SELECT balance FROM portfolio WHERE asset=?", [asset]).fetchone()
         return res[0] if res else 0.0
 
     def get_portfolio(self):
@@ -17,10 +17,8 @@ class PaperTrader:
         return self.con.execute("SELECT * FROM portfolio").fetchall()
 
     def get_active_trades(self):
-        col_names = [desc[0] for desc in self.con.description]
         rows = self.con.execute("SELECT * FROM trades WHERE status='OPEN'").fetchall()
-        # Convert to dict
-        # Assuming schema: id, ticker, entry_price, amount, entry_time, status, exit_price, exit_time, pnl, pnl_pct, confidence, notes
+        # Returns list of tuples with schema: id, ticker, entry_price, amount, entry_time, status, exit_price, exit_time, pnl, pnl_pct, confidence, notes
         return rows
 
     def open_trade(self, ticker: str, price: float, amount_usd: float, confidence: float, notes: str = ""):
@@ -36,22 +34,19 @@ class PaperTrader:
 
             # Deduct USD
             new_bal = usd_bal - amount_usd
-            self.con.execute(f"UPDATE portfolio SET balance={new_bal}, last_updated=current_timestamp WHERE asset='USD'")
-            
-            # Add Asset (or update existing holding)
-            # For simplicity in this v1, we just track the trade row, but we could also track asset tokens in portfolio.
-            # Let's just track the trade for PnL purposes.
+            self.con.execute(
+                "UPDATE portfolio SET balance=?, last_updated=current_timestamp WHERE asset='USD'",
+                [new_bal]
+            )
             
             # Insert Trade
             trade_id = f"{ticker}_{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}"
             amount_tokens = amount_usd / price
             
-            self.con.execute(f"""
-                INSERT INTO trades VALUES (
-                    '{trade_id}', '{ticker}', {price}, {amount_tokens}, current_timestamp, 
-                    'OPEN', 0, NULL, 0, 0, {confidence}, '{notes}'
-                )
-            """)
+            self.con.execute(
+                """INSERT INTO trades VALUES (?, ?, ?, ?, current_timestamp, 'OPEN', 0, NULL, 0, 0, ?, ?)""",
+                [trade_id, ticker, price, amount_tokens, confidence, notes]
+            )
             logger.info(f"PAPER TRADE OPENED: {ticker} @ ${price} (${amount_usd})")
             return True
             
@@ -75,7 +70,6 @@ class PaperTrader:
             clean_ticker = ticker.replace("$", "").upper()
             
             # Find current price
-            # We need to map generic tickers to what we have in current_prices (which comes from main.py's analyzed_tokens)
             curr = current_prices.get(clean_ticker) or current_prices.get(ticker)
             
             if not curr:
@@ -101,7 +95,10 @@ class PaperTrader:
     def close_trade(self, trade_id, exit_price, notes=""):
         try:
             # Get trade details
-            t = self.con.execute(f"SELECT ticker, amount, entry_price FROM trades WHERE id='{trade_id}'").fetchone()
+            t = self.con.execute(
+                "SELECT ticker, amount, entry_price FROM trades WHERE id=?",
+                [trade_id]
+            ).fetchone()
             if not t: return
             
             ticker, amount, entry = t[0], t[1], t[2]
@@ -110,20 +107,25 @@ class PaperTrader:
             pnl_pct = (exit_price - entry) / entry * 100
             
             # Update Trade
-            self.con.execute(f"""
-                UPDATE trades SET 
+            updated_notes = f"{notes}" if notes else ""
+            self.con.execute(
+                """UPDATE trades SET 
                     status='CLOSED', 
-                    exit_price={exit_price}, 
+                    exit_price=?, 
                     exit_time=current_timestamp, 
-                    pnl={pnl}, 
-                    pnl_pct={pnl_pct},
-                    notes=notes || ' - {notes}'
-                WHERE id='{trade_id}'
-            """)
+                    pnl=?, 
+                    pnl_pct=?,
+                    notes=notes || ' - ' || ?
+                WHERE id=?""",
+                [exit_price, pnl, pnl_pct, updated_notes, trade_id]
+            )
             
             # Credit USD back
             curr_bal = self.get_balance("USD")
-            self.con.execute(f"UPDATE portfolio SET balance={curr_bal + usd_returned} WHERE asset='USD'")
+            self.con.execute(
+                "UPDATE portfolio SET balance=? WHERE asset='USD'",
+                [curr_bal + usd_returned]
+            )
             
             logger.info(f"PAPER TRADE CLOSED: {ticker} | PnL: ${pnl:.2f} ({pnl_pct:.1f}%) | {notes}")
             

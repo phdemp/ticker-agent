@@ -55,6 +55,8 @@ class DeFiLlamaScraper(BaseScraper):
                 
         except Exception as e:
             self.log_error(f"Scrape error: {e}")
+        
+        return [results]
             
     async def get_stablecoin_chains(self) -> List[Dict[str, Any]]:
         """
@@ -119,8 +121,4 @@ class DeFiLlamaScraper(BaseScraper):
             self.log_error(f"Stablecoin chains error: {e}")
             
         return []
-
-    def scrape(self, query: str = "", limit: int = 5):
-        # ... (keep existing scrape wrapper or leave it be, we are adding a new method)
-        return super().scrape(query, limit) # Just a placeholder if I need to touch it
 

@@ -1,5 +1,5 @@
 
-from typing import Dict
+from typing import Any, Dict
 from loguru import logger
 
 class WebResearcher:
@@ -18,7 +18,7 @@ class WebResearcher:
             self.available = False
             self.ddgs = None
 
-    def verify_signal(self, ticker: str) -> Dict[str, any]:
+    def verify_signal(self, ticker: str) -> Dict[str, Any]:
         """
         Searches web for warnings/FUD about the ticker.
         Returns: { 'verified': bool, 'risk_level': str, 'notes': str }

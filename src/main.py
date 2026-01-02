@@ -17,6 +17,7 @@ from dashboard import generate_dashboard
 from agents.researcher import WebResearcher
 from trader.paper import PaperTrader
 from trader.strategy_manager import StrategyManager
+from agents.whale_watcher import WhaleWatcher
 
 load_dotenv()
 
@@ -50,6 +51,7 @@ async def main():
     researcher = WebResearcher()
     trader = PaperTrader()
     strategy_manager = StrategyManager()
+    whale_watcher = WhaleWatcher()
     
     analyzed_tokens = []
 
@@ -204,6 +206,14 @@ async def main():
                     # Gather Intel (News/Context)
                     intel = await researcher.gather_intel(ticker)
                     
+                    # Gather Whale Intel
+                    whale_intel = await whale_watcher.check_whale_activity(ticker)
+                    if "WHALE ALERT" in whale_intel:
+                         logger.info(f"🐋 {whale_intel}")
+                    
+                    # Combine Intel for the Bots
+                    full_intel = f"{intel}\n\nWHALE DATA (Market Makers): {whale_intel}"
+                    
                     # Get Decisions from all active bots
                     tech_data = {
                         "rsi": signal.get("rsi", 50),
@@ -211,7 +221,7 @@ async def main():
                         "price": signal.get("price", 0)
                     }
                     
-                    decisions = await strategy_manager.get_decisions(ticker, tech_data, intel)
+                    decisions = await strategy_manager.get_decisions(ticker, tech_data, full_intel)
                     
                     for d in decisions:
                         logger.info(f"Bot {d['bot_id']} says: {d['action']} ({d['confidence']}%) - {d['reason']}")

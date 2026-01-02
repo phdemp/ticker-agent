@@ -81,7 +81,28 @@ def init_db():
             pnl DOUBLE,
             pnl_pct DOUBLE,
             confidence_at_entry DOUBLE,
-            notes VARCHAR
+            notes VARCHAR,
+            bot_id VARCHAR -- ID of the bot that made the trade
+        )
+    """)
+    
+    # Attempt to add bot_id column if table existed but column didn't (migration)
+    try:
+        con.execute("ALTER TABLE trades ADD COLUMN bot_id VARCHAR")
+    except:
+        pass # Column likely exists
+
+    # Strategies/Bots table
+    con.execute("""
+        CREATE TABLE IF NOT EXISTS strategies (
+            bot_id VARCHAR PRIMARY KEY,
+            name VARCHAR,
+            model_provider VARCHAR,
+            system_prompt VARCHAR,
+            win_rate DOUBLE DEFAULT 0.0,
+            total_pnl DOUBLE DEFAULT 0.0,
+            active BOOLEAN DEFAULT TRUE,
+            last_updated TIMESTAMP
         )
     """)
     

@@ -23,7 +23,7 @@ class PaperTrader:
         # Assuming schema: id, ticker, entry_price, amount, entry_time, status, exit_price, exit_time, pnl, pnl_pct, confidence, notes
         return rows
 
-    def open_trade(self, ticker: str, price: float, amount_usd: float, confidence: float, notes: str = ""):
+    def open_trade(self, ticker: str, price: float, amount_usd: float, confidence: float, notes: str = "", bot_id: str = "Manual"):
         """
         Opens a new paper trade.
         """
@@ -38,10 +38,6 @@ class PaperTrader:
             new_bal = usd_bal - amount_usd
             self.con.execute(f"UPDATE portfolio SET balance={new_bal}, last_updated=current_timestamp WHERE asset='USD'")
             
-            # Add Asset (or update existing holding)
-            # For simplicity in this v1, we just track the trade row, but we could also track asset tokens in portfolio.
-            # Let's just track the trade for PnL purposes.
-            
             # Insert Trade
             trade_id = f"{ticker}_{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}"
             amount_tokens = amount_usd / price
@@ -49,10 +45,10 @@ class PaperTrader:
             self.con.execute(f"""
                 INSERT INTO trades VALUES (
                     '{trade_id}', '{ticker}', {price}, {amount_tokens}, current_timestamp, 
-                    'OPEN', 0, NULL, 0, 0, {confidence}, '{notes}'
+                    'OPEN', 0, NULL, 0, 0, {confidence}, '{notes}', '{bot_id}'
                 )
             """)
-            logger.info(f"PAPER TRADE OPENED: {ticker} @ ${price} (${amount_usd})")
+            logger.info(f"PAPER TRADE OPENED: {ticker} @ ${price} ({bot_id})")
             return True
             
         except Exception as e:

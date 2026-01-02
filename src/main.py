@@ -16,6 +16,7 @@ from safety.rugcheck import RugCheck
 from dashboard import generate_dashboard
 from agents.researcher import WebResearcher
 from trader.paper import PaperTrader
+from trader.strategy_manager import StrategyManager
 
 load_dotenv()
 
@@ -48,6 +49,7 @@ async def main():
     # New Agents
     researcher = WebResearcher()
     trader = PaperTrader()
+    strategy_manager = StrategyManager()
     
     analyzed_tokens = []
 
@@ -193,29 +195,39 @@ async def main():
                     "url": pair.get("url")
                 })
                 
-                # --- AGENTIC ACTION: Paper Trading ---
-                # A. Check if high confidence (> 80)
-                if signal["confidence"] >= 80:
-                    logger.info(f"HIGH CONFIDENCE for {ticker}. Initiating Research...")
+                # --- AGENTIC ACTION: Autonomous Bots ---
+                # A. Bot Decision Loop (Strategy Manager)
+                # Instead of a single "Check > 80", we let all bots analyze reasonable candidates.
+                if signal["confidence"] > 60: 
+                    logger.info(f"Candidate {ticker} passed to Autonomous Bots...")
                     
-                    # B. Web Research
-                    research_result = researcher.verify_signal(ticker)
-                    if research_result["verified"]:
-                        logger.info(f"RESEARCH CLEARED {ticker}: {research_result['notes']}")
+                    # Gather Intel (News/Context)
+                    intel = await researcher.gather_intel(ticker)
+                    
+                    # Get Decisions from all active bots
+                    tech_data = {
+                        "rsi": signal.get("rsi", 50),
+                        "macd": signal.get("macd", {}).get("macd", 0),
+                        "price": signal.get("price", 0)
+                    }
+                    
+                    decisions = await strategy_manager.get_decisions(ticker, tech_data, intel)
+                    
+                    for d in decisions:
+                        logger.info(f"Bot {d['bot_id']} says: {d['action']} ({d['confidence']}%) - {d['reason']}")
                         
-                        # C. Execute Trade (Paper)
-                        # Position sizing: $1000 fixed for now
-                        trader.open_trade(
-                            ticker=ticker,
-                            price=current_price,
-                            amount_usd=1000.0,
-                            confidence=signal["confidence"],
-                            notes=f"Auto-trade. Research: {research_result['notes']}"
-                        )
-                    else:
-                        logger.warning(f"TRADE ABORTED {ticker}: {research_result['risk_level']} Risk - {research_result['notes']}")
-                        # Penalize confidence
-                        signal["confidence"] -= 20
+                        if d['action'] == "BUY" and d['confidence'] >= 75:
+                             # Execute Trade
+                             success = trader.open_trade(
+                                 ticker=ticker,
+                                 price=current_price,
+                                 amount_usd=1000.0, # Fixed size per bot
+                                 confidence=d['confidence'],
+                                 notes=f"Bot: {d['bot_id']} | {d['reason']}",
+                                 bot_id=d['bot_id']
+                             )
+                             if success:
+                                 logger.info(f"🚀 Bot {d['bot_id']} ape'd into {ticker}!")
                 
                 analyzed_tokens.append(signal)
                 logger.info(f"Analyzed {ticker}: Conf {signal['confidence']}%")
@@ -272,7 +284,11 @@ async def main():
         if degen_candidates:
             top_picks['degen'] = degen_candidates[0]
             
-    # ... (rest of file)
+        # --- AGENTIC ACTION: Learning Loop ---
+        await strategy_manager.run_learning_loop()
+            
+    except Exception as e:
+        logger.error(f"Main loop error: {e}")
     
     finally:
         # ...

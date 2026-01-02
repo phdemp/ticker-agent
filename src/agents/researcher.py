@@ -1,16 +1,25 @@
-
-from typing import Dict
+from typing import Dict, Any
 from loguru import logger
+import asyncio
+
+# Import Ensemble
+try:
+    from llm.ensemble import EnsembleAnalyst
+except ImportError:
+    EnsembleAnalyst = None
 
 class WebResearcher:
     def __init__(self):
+        self.ensemble = None
+        if EnsembleAnalyst:
+            self.ensemble = EnsembleAnalyst()
+            
         try:
             from duckduckgo_search import DDGS
             self.ddgs = DDGS()
             self.available = True
         except ImportError:
-            logger.warning("duckduckgo_search not installed. Research capabilities disabled.")
-            logger.warning("Install with: pip install duckduckgo-search")
+            logger.warning("duckduckgo_search not installed.")
             self.available = False
             self.ddgs = None
         except Exception as e:
@@ -18,57 +27,86 @@ class WebResearcher:
             self.available = False
             self.ddgs = None
 
-    def verify_signal(self, ticker: str) -> Dict[str, any]:
+    async def verify_signal(self, ticker: str, technicals: Dict[str, Any] = None) -> Dict[str, any]:
         """
-        Searches web for warnings/FUD about the ticker.
-        Returns: { 'verified': bool, 'risk_level': str, 'notes': str }
+        Searches web and uses LLM Ensemble to verify signal.
         """
         if not self.available or not self.ddgs:
             return {"verified": True, "risk_level": "UNKNOWN", "notes": "Researcher unavailable"}
             
+        if not technicals:
+            technicals = {"rsi": 50, "macd": 0, "price": 0}
+
         ticker_clean = ticker.replace("$", "")
         
-        # 1. Search for "scam" or "rug pull"
-        # We limit results to 3 to be fast
+    async def gather_intel(self, ticker: str) -> str:
+        """Just gathers news/search results."""
+        if not self.available or not self.ddgs:
+            return "No web access."
+            
+        ticker_clean = ticker.replace("$", "")
+        # Gather News
         try:
-            query = f"{ticker_clean} token crypto scam rug pull"
-            results = list(self.ddgs.text(query, max_results=3))
+            query = f"{ticker_clean} token crypto news analysis"
+            results = list(self.ddgs.text(query, max_results=4))
             
-            risk_keywords = ["scam", "rug", "exploit", "honeypot", "steal", "drain"]
-            found_risks = []
-            
+            news_summary = ""
             for res in results:
-                title = res.get('title', '').lower()
-                body = res.get('body', '').lower()
+                news_summary += f"- {res.get('title')}: {res.get('body')}\n"
                 
-                for word in risk_keywords:
-                    if word in title: # Title matches are high risk
-                        found_risks.append(f"Found warning in title: {res.get('title')}")
+            return news_summary if news_summary else "No news found."
+        except Exception as e:
+            return f"Error gathering intel: {e}"
+
+    async def verify_signal(self, ticker: str, technicals: Dict[str, Any] = None) -> Dict[str, any]:
+        """
+        Searches web and uses LLM Ensemble to verify signal.
+        """
+        if not self.available or not self.ddgs:
+            return {"verified": True, "risk_level": "UNKNOWN", "notes": "Researcher unavailable"}
             
-            if found_risks:
-                logger.warning(f"Researcher found RISKS for {ticker}: {found_risks}")
+        if not technicals:
+            technicals = {"rsi": 50, "macd": 0, "price": 0}
+
+        try:
+            # 1. Gather News (Context)
+            news_summary = await self.gather_intel(ticker)
+
+            # 2. Ask the Council (LLM Ensemble)
+            if self.ensemble and self.ensemble.providers:
+                logger.info(f"🤖 Convening Council of Experts for {ticker}...")
+                verdict = await self.ensemble.analyze_signal(ticker, technicals, news_summary)
+                
+                # Decision Threshold
+                # If Critic found serious issues, confidence will be low.
+                risk_level = "LOW"
+                verified = True
+                
+                if verdict["confidence"] < 40:
+                    risk_level = "HIGH"
+                    verified = False
+                elif verdict["confidence"] < 65:
+                    risk_level = "MEDIUM"
+                    # We might still verify it but with caution
+                    verified = True 
+                    
                 return {
-                    "verified": False,
-                    "risk_level": "HIGH",
-                    "notes": "; ".join(found_risks[:2])
+                    "verified": verified,
+                    "risk_level": risk_level,
+                    "notes": f"Council Conf: {verdict['confidence']}/100. {verdict['rationale']}",
+                    "details": verdict
                 }
-                
-            # 2. Search for generic news
-            query_news = f"{ticker_clean} crypto token news"
-            news_results = list(self.ddgs.text(query_news, max_results=2))
             
-            # If nothing found at all, might be too new/obscure (Risk)
-            if not results and not news_results:
-                 return {
-                    "verified": True, # Technically verified as "no bad news", but cautious
-                    "risk_level": "MEDIUM", 
-                    "notes": "No web presence found"
-                }
-                
+            # Fallback to old keywords if no LLM
+            user_risk_keywords = ["scam", "rug", "exploit", "honeypot"]
+            for word in user_risk_keywords:
+                if word in news_summary.lower():
+                     return {"verified": False, "risk_level": "HIGH", "notes": f"Keyword '{word}' found."}
+                     
             return {
                 "verified": True,
-                "risk_level": "LOW",
-                "notes": "No immediate red flags found on web"
+                "risk_level": "LOW", 
+                "notes": "No immediate flags (Legacy Search)"
             }
             
         except Exception as e:
@@ -77,5 +115,8 @@ class WebResearcher:
 
 if __name__ == "__main__":
     # Test
-    r = WebResearcher()
-    print(r.verify_signal("$SOL"))
+    async def main():
+        r = WebResearcher()
+        # Mock tech data
+        print(await r.verify_signal("$SOL", {"rsi": 30, "macd": -0.5, "price": 145}))
+    asyncio.run(main())

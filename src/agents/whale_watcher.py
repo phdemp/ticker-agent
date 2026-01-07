@@ -1,7 +1,7 @@
 
 from duckduckgo_search import DDGS
 from loguru import logger
-from src.data.market_makers import MM_KEYWORDS
+from data.market_makers import MM_KEYWORDS
 
 class WhaleWatcher:
     def __init__(self):

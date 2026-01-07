@@ -10,14 +10,14 @@ from llm.provider import GeminiProvider, HuggingFaceProvider, GroqProvider, GitH
 # Default System Prompts (The "DNA" of the bots)
 DEFAULT_PROMPTS = {
     "Gemini_Trend": "You are a Trend Follower. You buy when Price > EMA and Volume is rising. If 'WHALE ALERT' appears, you take it as a confirmation of volume.",
-    "Llama_Sniper": "You are a Mean Reversion Sniper. You buy fear (RSI < 30). You are skeptical. BUT if 'WHALE ALERT' confirms smart money accumulation, you front-run them.",
+    "GLM_Sniper": "You are a Mean Reversion Sniper. You buy fear (RSI < 30). You are skeptical. BUT if 'WHALE ALERT' confirms smart money accumulation, you front-run them.",
     "Kimi_Narrative": "You are a Narrative Trader. You love HYPE and SCOOPS. If you see 'WHALE ALERT' (Wintermute, Jump, etc.), you BUY AGGRESSIVELY. Follow the smart money.",
     "Phi_Intern": "You are the Intern. You take risks. If you see specific fund names in 'WHALE DATA', you assume it's alpha and follow it."
 }
 
 DEFAULT_MODELS = {
-    "Gemini_Trend": ("gemini", "gemini-1.5-flash"),
-    "Llama_Sniper": ("huggingface", "meta-llama/Meta-Llama-3-8B-Instruct"),
+    "Gemini_Trend": ("gemini", "gemini-2.5-flash"),
+    "GLM_Sniper": ("huggingface", "THUDM/glm-4-9b-chat"),
     "Kimi_Narrative": ("groq", "moonshotai/kimi-k2-instruct-0905"),
     "Phi_Intern": ("github", "gpt-4o")
 }

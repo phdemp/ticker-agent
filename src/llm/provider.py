@@ -12,7 +12,7 @@ class LLMProvider(abc.ABC):
         pass
 
 class GeminiProvider(LLMProvider):
-    def __init__(self, api_key: str, model_name: str = "gemini-1.5-flash"):
+    def __init__(self, api_key: str, model_name: str = "gemini-2.5-flash"):
         self.api_key = api_key
         self.model_name = model_name
         self.url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"

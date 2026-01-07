@@ -200,7 +200,9 @@ async def main():
                 # --- AGENTIC ACTION: Autonomous Bots ---
                 # A. Bot Decision Loop (Strategy Manager)
                 # Instead of a single "Check > 80", we let all bots analyze reasonable candidates.
-                if signal["confidence"] > 60: 
+                logger.info(f"Checking {ticker} (Conf: {signal['confidence']}%) for Bot Action...")
+                
+                if signal["confidence"] > 10: 
                     logger.info(f"Candidate {ticker} passed to Autonomous Bots...")
                     
                     # Gather Intel (News/Context)

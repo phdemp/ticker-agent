@@ -7,7 +7,7 @@ class ArtemisScraper(BaseScraper):
     def __init__(self):
         super().__init__("Artemis")
         self.api_key = os.getenv("ARTEMIS_API_KEY")
-        self.base_url = "https://api.artemis.xyz" 
+        self.base_url = "https://app.artemis.xyz" 
 
     async def scrape(self, query: str = "", limit: int = 10) -> List[Dict[str, Any]]:
         """

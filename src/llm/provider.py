@@ -54,7 +54,7 @@ class GeminiProvider(LLMProvider):
                 return f"Error: {e}"
 
 class HuggingFaceProvider(LLMProvider):
-    def __init__(self, api_token: str, model_name: str = "meta-llama/Meta-Llama-3-8B-Instruct"):
+    def __init__(self, api_token: str, model_name: str = "Qwen/Qwen2.5-Coder-32B-Instruct"):
         self.api_token = api_token
         self.model_name = model_name
         # Use the chat completions endpoint for instruction-tuned models

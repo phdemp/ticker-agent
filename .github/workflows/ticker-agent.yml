@@ -55,14 +55,7 @@ jobs:
             echo "Created fallback index.html"
           fi
 
-      - name: Commit Database Changes
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add ticker.db
-          git commit -m "Update ticker database" || echo "No changes to commit"
-          git pull --rebase
-          git push
+
 
       - name: Upload Pages Artifact
         uses: actions/upload-pages-artifact@v3

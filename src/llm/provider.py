@@ -54,11 +54,11 @@ class GeminiProvider(LLMProvider):
                 return f"Error: {e}"
 
 class HuggingFaceProvider(LLMProvider):
-    def __init__(self, api_token: str, model_name: str = "Qwen/Qwen2.5-Coder-32B-Instruct"):
+    def __init__(self, api_token: str, model_name: str = "Qwen/Qwen2.5-72B-Instruct"):
         self.api_token = api_token
         self.model_name = model_name
-        # Use the chat completions endpoint for instruction-tuned models
-        self.url = "https://router.huggingface.co/hf-inference/v1/chat/completions"
+        # Use the Hugging Face Router API endpoint (model is specified in request body)
+        self.url = "https://router.huggingface.co/v1/chat/completions"
 
     async def generate(self, prompt: str, system_instruction: str = "") -> str:
         if not self.api_token:

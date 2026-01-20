@@ -5,7 +5,7 @@ import json
 from typing import Dict, List, Any
 from loguru import logger
 from db import get_db_connection
-from llm.provider import GeminiProvider, HuggingFaceProvider, GroqProvider, GitHubModelProvider, CerebrasProvider
+from llm.provider import GeminiProvider, HuggingFaceProvider, GroqProvider, GitHubModelProvider, CerebrasProvider, CohereProvider
 
 # Default System Prompts (The "DNA" of the bots)
 DEFAULT_PROMPTS = {
@@ -13,7 +13,8 @@ DEFAULT_PROMPTS = {
     "Cerebras_Sniper": "You are a Mean Reversion Sniper. You buy fear (RSI < 30). You are skeptical. BUT if 'WHALE ALERT' confirms smart money accumulation, you front-run them.",
     "Kimi_Narrative": "You are a Narrative Trader. You love HYPE and SCOOPS. If you see 'WHALE ALERT' (Wintermute, Jump, etc.), you BUY AGGRESSIVELY. Follow the smart money.",
     "Phi_Intern": "You are the Intern. You take risks. If you see specific fund names in 'WHALE DATA', you assume it's alpha and follow it.",
-    "Llama_Observer": "You are the Observer. Your job is to WATCH what other bots are doing and provide a SECOND OPINION. If the signal looks risky or the other bots missed something, call it out. You are the voice of reason. Rarely BUY, mostly HOLD or warn about risks."
+    "Llama_Observer": "You are the Observer. Your job is to WATCH what other bots are doing and provide a SECOND OPINION. If the signal looks risky or the other bots missed something, call it out. You are the voice of reason. Rarely BUY, mostly HOLD or warn about risks.",
+    "Cohere_Commander": "You are the Strategic Commander. You synthesize data from all sources. You are decisive. If other bots are panicked, you stay calm. You prioritize MACD crossovers and Whale movements above all else."
 }
 
 DEFAULT_MODELS = {
@@ -21,7 +22,8 @@ DEFAULT_MODELS = {
     "Cerebras_Sniper": ("cerebras", "zai-glm-4.7"),
     "Kimi_Narrative": ("groq", "moonshotai/kimi-k2-instruct-0905"),
     "Phi_Intern": ("github", "gpt-4o"),
-    "Llama_Observer": ("groq", "llama-3.3-70b-versatile")
+    "Llama_Observer": ("groq", "llama-3.3-70b-versatile"),
+    "Cohere_Commander": ("cohere", "command-r-plus-08-2024")
 }
 
 class StrategyManager:
@@ -56,6 +58,7 @@ class StrategyManager:
         groq_key = os.getenv("GROQ_API_KEY")
         github_token = os.getenv("GITHUB_TOKEN")
         cerebras_key = os.getenv("CEREBRAS_API_KEY")
+        cohere_key = os.getenv("COHERE_API_KEY")
         
         for bot_id in DEFAULT_PROMPTS.keys():
             provider_type, model_name = DEFAULT_MODELS[bot_id]
@@ -71,6 +74,8 @@ class StrategyManager:
                 llm = GitHubModelProvider(github_token, model_name)
             elif provider_type == "cerebras" and cerebras_key:
                 llm = CerebrasProvider(cerebras_key, model_name)
+            elif provider_type == "cohere" and cohere_key:
+                llm = CohereProvider(cohere_key, model_name)
                 
             if llm:
                 self.bots[bot_id] = llm
@@ -193,7 +198,10 @@ class StrategyManager:
             Current System Prompt: "{curr_prompt}"
             
             Task: {instruction}
-            Rewrite the System Prompt to improve future performance. Keep the core personality (Sniper/Surfer/etc) but refine the rules.
+            
+            CROSS-AGENT LEARNING:
+            If other agents succeeded where you failed, incorporate their logic (e.g., if they checked Volume/Whales and you didn't).
+            Target: IMPROVE ACCURACY.
             
             Format:
             NEW_PROMPT: [The new text only]

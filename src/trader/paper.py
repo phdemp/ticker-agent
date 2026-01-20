@@ -7,6 +7,11 @@ from db import DB_PATH
 class PaperTrader:
     def __init__(self):
         self.con = duckdb.connect(DB_PATH)
+        # Seed funds if empty
+        bal = self.get_balance("USD")
+        if bal == 0:
+            logger.info("SEEDING Paper Account with $10,000 USD")
+            self.con.execute("INSERT INTO portfolio VALUES ('USD', 10000.0, current_timestamp)")
         
     def get_balance(self, asset="USD"):
         res = self.con.execute(f"SELECT balance FROM portfolio WHERE asset='{asset}'").fetchone()

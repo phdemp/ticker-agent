@@ -202,7 +202,7 @@ async def main():
                 # Instead of a single "Check > 80", we let all bots analyze reasonable candidates.
                 logger.info(f"Checking {ticker} (Conf: {signal['confidence']}%) for Bot Action...")
                 
-                if signal["confidence"] > 10: 
+                if signal["confidence"] > 0: 
                     logger.info(f"Candidate {ticker} passed to Autonomous Bots...")
                     
                     # Gather Intel (News/Context)
@@ -228,7 +228,7 @@ async def main():
                     for d in decisions:
                         logger.info(f"Bot {d['bot_id']} says: {d['action']} ({d['confidence']}%) - {d['reason']}")
                         
-                        if d['action'] == "BUY" and d['confidence'] >= 75:
+                        if d['action'] == "BUY" and d['confidence'] >= 65:
                              # Execute Trade
                              success = trader.open_trade(
                                  ticker=ticker,

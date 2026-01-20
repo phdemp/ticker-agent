@@ -232,3 +232,42 @@ class CerebrasProvider(LLMProvider):
             except Exception as e:
                 logger.error(f"Cerebras Request Failed: {e}")
                 return f"Error: {e}"
+
+class CohereProvider(LLMProvider):
+    def __init__(self, api_key: str, model_name: str = "command-r-plus-08-2024"):
+        self.api_key = api_key
+        self.model_name = model_name
+        self.url = "https://api.cohere.com/v1/chat"
+
+    async def generate(self, prompt: str, system_instruction: str = "") -> str:
+        if not self.api_key:
+            return "Error: No Cohere API Key provided."
+
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+            "Request-Source": "python-sdk" 
+        }
+
+        # Cohere uses 'preamble' for system instructions
+        payload = {
+            "model": self.model_name,
+            "message": prompt,
+            "temperature": 0.7,
+            "preamble": system_instruction
+        }
+
+        async with httpx.AsyncClient() as client:
+            try:
+                resp = await client.post(self.url, json=payload, headers=headers, timeout=30.0)
+                
+                if resp.status_code != 200:
+                    logger.error(f"Cohere API Error {resp.status_code}: {resp.text}")
+                    return f"Error: Cohere API returned {resp.status_code}"
+
+                data = resp.json()
+                return data["text"]
+                    
+            except Exception as e:
+                logger.error(f"Cohere Request Failed: {e}")
+                return f"Error: {e}"

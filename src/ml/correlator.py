@@ -78,6 +78,7 @@ class SignalCorrelator:
         signal = {
             "ticker": ticker,
             "sentiment_z": sent_z,
+            "sentiment": current_sentiment,
             "volume_z": vol_z,
             "rsi": rsi,
             "macd": macd_data,

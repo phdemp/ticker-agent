@@ -16,6 +16,10 @@ class DexScreenerScraper(BaseScraper):
             if response.status_code == 200:
                 data = response.json()
                 pairs = data.get("pairs", [])
+                
+                # Sort by liquidity desc
+                pairs.sort(key=lambda x: float(x.get("liquidity", {}).get("usd", 0) or 0), reverse=True)
+                
                 return self._process_pairs(pairs, limit)
             else:
                 self.log_error(f"API Error: {response.status_code}")

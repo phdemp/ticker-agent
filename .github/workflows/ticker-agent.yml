@@ -39,6 +39,7 @@ jobs:
           CEREBRAS_API_KEY: ${{ secrets.CEREBRAS_API_KEY }}
           ARTEMIS_API_KEY: ${{ secrets.ARTEMIS_API_KEY }}
           COHERE_API_KEY: ${{ secrets.COHERE_API_KEY }}
+          COINMARKETCAP_API_KEY: ${{ secrets.COINMARKETCAP_API_KEY }}
         run: |
           python src/main.py
 

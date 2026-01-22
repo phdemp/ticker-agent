@@ -9,6 +9,7 @@ from scrapers.dexscreener import DexScreenerScraper
 from scrapers.defillama import DeFiLlamaScraper
 from scrapers.cointelegraph import CointelegraphScraper
 from scrapers.artemis import ArtemisScraper
+from scrapers.coinmarketcap import CoinMarketCapScraper
 from ml.sentiment import SentimentAnalyzer
 from ml.correlator import SignalCorrelator
 from notifications import DiscordNotifier
@@ -42,6 +43,7 @@ async def main():
     defillama = DeFiLlamaScraper()
     cointelegraph = CointelegraphScraper()
     artemis = ArtemisScraper()
+    cmc = CoinMarketCapScraper()
     sentiment_analyzer = SentimentAnalyzer()
     correlator = SignalCorrelator()
     notifier = DiscordNotifier(DISCORD_WEBHOOK)
@@ -73,6 +75,22 @@ async def main():
         defi_stats = await defillama.scrape()
         if defi_stats:
             logger.info(f"Global TVL: ${defi_stats[0]['tvl']:,.2f}")
+
+        # 0.5 Fetch Top Tokens from CoinMarketCap (Primary Source)
+        logger.info("Fetching top tokens from CoinMarketCap...")
+        cmc_tokens = await cmc.get_top_tokens(limit=100)
+        
+        # Initialize dynamic watchlist with CMC tokens + Static list
+        # We prioritize CMC tokens.
+        dynamic_watchlist = set(cmc_tokens) 
+        if not dynamic_watchlist:
+            logger.warning("CMC fetch failed/empty. Falling back to static watchlist.")
+            dynamic_watchlist = set(WATCHLIST)
+        else:
+             logger.info(f"Initialized Watchlist with {len(dynamic_watchlist)} tokens from CMC.")
+             # Add static safe list just in case they dropped out of top 100 but we still want to track them
+             for t in ["$BTC", "$ETH", "$SOL"]:
+                 dynamic_watchlist.add(t)
 
         # 0.1 Cointelegraph News
         logger.info("Fetching Cointelegraph News...")

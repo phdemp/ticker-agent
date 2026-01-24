@@ -8,8 +8,9 @@ class PaperTrader:
     def __init__(self):
         self.con = duckdb.connect(DB_PATH)
         # Seed funds if empty
-        bal = self.get_balance("USD")
-        if bal == 0:
+        # Seed funds if row doesn't exist
+        res = self.con.execute("SELECT 1 FROM portfolio WHERE asset='USD'").fetchone()
+        if not res:
             logger.info("SEEDING Paper Account with $10,000 USD")
             self.con.execute("INSERT INTO portfolio VALUES ('USD', 10000.0, current_timestamp)")
         

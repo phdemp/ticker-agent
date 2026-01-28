@@ -254,7 +254,8 @@ async def main():
                                  amount_usd=1000.0, # Fixed size per bot
                                  confidence=d['confidence'],
                                  notes=f"Bot: {d['bot_id']} | {d['reason']}",
-                                 bot_id=d['bot_id']
+                                 bot_id=d['bot_id'],
+                                 algorithm_used=d.get('system_prompt', "")
                              )
                              if success:
                                  logger.info(f"🚀 Bot {d['bot_id']} ape'd into {ticker}!")

@@ -40,6 +40,8 @@ jobs:
           ARTEMIS_API_KEY: ${{ secrets.ARTEMIS_API_KEY }}
           COHERE_API_KEY: ${{ secrets.COHERE_API_KEY }}
           COINMARKETCAP_API_KEY: ${{ secrets.COINMARKETCAP_API_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
         run: |
           python src/main.py
 

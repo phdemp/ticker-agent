@@ -3,6 +3,7 @@ import duckdb
 import datetime
 from loguru import logger
 from db import DB_PATH
+from supabase_client import supabase_sync
 
 class PaperTrader:
     def __init__(self):
@@ -29,7 +30,7 @@ class PaperTrader:
         # Assuming schema: id, ticker, entry_price, amount, entry_time, status, exit_price, exit_time, pnl, pnl_pct, confidence, notes
         return rows
 
-    def open_trade(self, ticker: str, price: float, amount_usd: float, confidence: float, notes: str = "", bot_id: str = "Manual"):
+    def open_trade(self, ticker: str, price: float, amount_usd: float, confidence: float, notes: str = "", bot_id: str = "Manual", algorithm_used: str = ""):
         """
         Opens a new paper trade.
         """
@@ -51,9 +52,23 @@ class PaperTrader:
             self.con.execute(f"""
                 INSERT INTO trades VALUES (
                     '{trade_id}', '{ticker}', {price}, {amount_tokens}, current_timestamp, 
-                    'OPEN', 0, NULL, 0, 0, {confidence}, '{notes}', '{bot_id}'
+                    'OPEN', 0, NULL, 0, 0, {confidence}, '{notes}', '{bot_id}', '{algorithm_used}'
                 )
             """)
+            
+            # Sync to Supabase
+            supabase_sync.sync_trade({
+                "id": trade_id,
+                "ticker": ticker,
+                "entry_price": price,
+                "amount": amount_tokens,
+                "status": "OPEN",
+                "confidence_at_entry": confidence,
+                "notes": notes,
+                "bot_id": bot_id,
+                "algorithm_used": algorithm_used
+            })
+            
             logger.info(f"PAPER TRADE OPENED: {ticker} @ ${price} ({bot_id})")
             return True
             
@@ -127,6 +142,17 @@ class PaperTrader:
             curr_bal = self.get_balance("USD")
             self.con.execute(f"UPDATE portfolio SET balance={curr_bal + usd_returned} WHERE asset='USD'")
             
+            # Sync to Supabase
+            supabase_sync.sync_trade({
+                "id": trade_id,
+                "status": "CLOSED",
+                "exit_price": exit_price,
+                "exit_time": "now()", # Supabase will handle or we can pass isoformat
+                "pnl": pnl,
+                "pnl_pct": pnl_pct,
+                "notes": f"CLOSED: {notes}"
+            })
+
             logger.info(f"PAPER TRADE CLOSED: {ticker} | PnL: ${pnl:.2f} ({pnl_pct:.1f}%) | {notes}")
             
         except Exception as e:

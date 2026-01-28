@@ -82,15 +82,20 @@ def init_db():
             pnl_pct DOUBLE,
             confidence_at_entry DOUBLE,
             notes VARCHAR,
-            bot_id VARCHAR -- ID of the bot that made the trade
+            bot_id VARCHAR, -- ID of the bot that made the trade
+            algorithm_used VARCHAR -- System prompt used
         )
     """)
     
-    # Attempt to add bot_id column if table existed but column didn't (migration)
+    # Attempt to add columns if table existed but columns didn't (migration)
     try:
         con.execute("ALTER TABLE trades ADD COLUMN bot_id VARCHAR")
     except:
-        pass # Column likely exists
+        pass
+    try:
+        con.execute("ALTER TABLE trades ADD COLUMN algorithm_used VARCHAR")
+    except:
+        pass
 
     # Strategies/Bots table
     con.execute("""

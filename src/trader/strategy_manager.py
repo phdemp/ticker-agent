@@ -6,6 +6,7 @@ from typing import Dict, List, Any
 from loguru import logger
 from db import get_db_connection
 from llm.provider import GeminiProvider, HuggingFaceProvider, GroqProvider, GitHubModelProvider, CerebrasProvider, CohereProvider
+from supabase_client import supabase_sync
 
 # Default System Prompts (The "DNA" of the bots)
 DEFAULT_PROMPTS = {
@@ -146,7 +147,8 @@ class StrategyManager:
                     "action": action,
                     "confidence": conf,
                     "reason": reason,
-                    "raw_output": res
+                    "raw_output": res,
+                    "system_prompt": prompts[bot_id]
                 })
             else:
                 logger.error(f"Bot {bot_id} failed: {res}")
@@ -160,14 +162,32 @@ class StrategyManager:
         """
         logger.info("🧠 Running Strategy Learning Loop...")
         
-        # Find closed trades that haven't been analyzed (simplification: just check last 5)
-        # In a real system, we'd flag verified trades.
-        trades = self.conn.execute("""
-            SELECT id, bot_id, ticker, pnl_pct, notes, entry_time 
+        duck_trades = self.conn.execute("""
+            SELECT id, bot_id, ticker, pnl_pct, notes, entry_time, algorithm_used 
             FROM trades 
             WHERE status='CLOSED' AND bot_id IS NOT NULL
-            ORDER BY exit_time DESC LIMIT 5
+            ORDER BY exit_time DESC LIMIT 10
         """).fetchall()
+        
+        # Pull more from Supabase for better learning
+        supabase_trades = supabase_sync.get_historical_trades(limit=20)
+        
+        # Combine (Map duck trades to dicts to match Supabase format)
+        trades = []
+        for t in duck_trades:
+            trades.append({
+                "id": t[0],
+                "bot_id": t[1],
+                "ticker": t[2],
+                "pnl_pct": t[3],
+                "notes": t[4],
+                "entry_time": t[5],
+                "algorithm_used": t[6]
+            })
+        
+        for st in supabase_trades:
+            if st['id'] not in [t['id'] for t in trades]:
+                trades.append(st)
         
         # For this demo, let's just optimize if we find a big loss or big win
         # But we need an 'Optimizer' LLM (let's use Gemini via Analyst role)
@@ -176,17 +196,26 @@ class StrategyManager:
             return
 
         for t in trades:
-            t_id, bot_id, ticker, pnl, notes, entry = t
+            t_id = t['id']
+            bot_id = t['bot_id']
+            ticker = t['ticker']
+            pnl = t['pnl_pct']
+            notes = t['notes']
+            entry = t['entry_time']
+            used_prompt = t.get('algorithm_used') or ""
             
-            # Retrieve current prompt
-            curr_prompt = self.conn.execute("SELECT system_prompt FROM strategies WHERE bot_id=?", (bot_id,)).fetchone()[0]
+            # Retrieve current prompt (as baseline)
+            # We prefer used_prompt for actual analysis of what happened
+            baseline_prompt = self.conn.execute("SELECT system_prompt FROM strategies WHERE bot_id=?", (bot_id,)).fetchone()
+            if not baseline_prompt: continue
+            curr_prompt = baseline_prompt[0]
             
             # Critique
             instruction = ""
             if pnl < -5.0:
-                 instruction = "You took a significant LOSS using the current strategy. Analyzing the failure..."
+                 instruction = f"You took a significant LOSS using this algorithm: '{used_prompt}'. Current baseline is: '{curr_prompt}'. Analyze the failure..."
             elif pnl > 10.0:
-                 instruction = "You had a massive WIN. Reinforce this behavior..."
+                 instruction = f"You had a massive WIN using this algorithm: '{used_prompt}'. Reinforce this behavior into your baseline: '{curr_prompt}'..."
             else:
                 continue # Ignore noise
                 
@@ -212,6 +241,14 @@ class StrategyManager:
                 new_prompt = new_prompt_raw.split("NEW_PROMPT:")[1].strip()
                 # Update DB
                 self.conn.execute("UPDATE strategies SET system_prompt=? WHERE bot_id=?", (new_prompt, bot_id))
+                
+                # Sync to Supabase
+                supabase_sync.sync_strategy({
+                    "bot_id": bot_id,
+                    "system_prompt": new_prompt,
+                    "last_updated": "now()"
+                })
+                
                 logger.info(f"🧬 Evolved Bot {bot_id}: {new_prompt[:50]}...")
 
 if __name__ == "__main__":

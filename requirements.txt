@@ -14,3 +14,4 @@ textblob>=0.17.1
 feedparser>=6.0.10
 emoji>=2.0.0
 vaderSentiment>=3.3.2
+supabase>=2.0.0

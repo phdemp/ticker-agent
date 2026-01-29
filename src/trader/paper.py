@@ -8,12 +8,13 @@ from supabase_client import supabase_sync
 class PaperTrader:
     def __init__(self):
         self.con = duckdb.connect(DB_PATH)
-        # Seed funds if empty
-        # Seed funds if row doesn't exist
+        # Reset/Force balance to $10,000 for unlimited trading
         res = self.con.execute("SELECT 1 FROM portfolio WHERE asset='USD'").fetchone()
         if not res:
-            logger.info("SEEDING Paper Account with $10,000 USD")
             self.con.execute("INSERT INTO portfolio VALUES ('USD', 10000.0, current_timestamp)")
+        else:
+            self.con.execute("UPDATE portfolio SET balance=10000.0, last_updated=current_timestamp WHERE asset='USD'")
+        logger.info("Paper Account balance FIXED at $10,000 USD (Unlimited Trading Enabled)")
         
     def get_balance(self, asset="USD"):
         res = self.con.execute(f"SELECT balance FROM portfolio WHERE asset='{asset}'").fetchone()
@@ -35,15 +36,12 @@ class PaperTrader:
         Opens a new paper trade.
         """
         try:
-            # Check balance
-            usd_bal = self.get_balance("USD")
-            if usd_bal < amount_usd:
-                logger.warning(f"Insufficient funds ({usd_bal}) to trade {amount_usd} on {ticker}")
-                return False
-
-            # Deduct USD
-            new_bal = usd_bal - amount_usd
-            self.con.execute(f"UPDATE portfolio SET balance={new_bal}, last_updated=current_timestamp WHERE asset='USD'")
+            # Skip balance check for unlimited trading
+            # usd_bal = self.get_balance("USD")
+            
+            # Skip deduction - balance stays at 10k
+            # new_bal = usd_bal - amount_usd
+            # self.con.execute(f"UPDATE portfolio SET balance={new_bal}, last_updated=current_timestamp WHERE asset='USD'")
             
             # Insert Trade
             trade_id = f"{ticker}_{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}"
@@ -138,9 +136,9 @@ class PaperTrader:
                 WHERE id='{trade_id}'
             """)
             
-            # Credit USD back
-            curr_bal = self.get_balance("USD")
-            self.con.execute(f"UPDATE portfolio SET balance={curr_bal + usd_returned} WHERE asset='USD'")
+            # Skip Credit back - balance stays at 10k
+            # curr_bal = self.get_balance("USD")
+            # self.con.execute(f"UPDATE portfolio SET balance={curr_bal + usd_returned} WHERE asset='USD'")
             
             # Sync to Supabase
             supabase_sync.sync_trade({

@@ -1,7 +1,7 @@
 from typing import List, Dict
 from loguru import logger
 from .stats import calculate_z_score, is_anomaly
-from .indicators import calculate_rsi, calculate_macd
+from .indicators import calculate_rsi, calculate_macd, calculate_ema
 
 class SignalCorrelator:
     def __init__(self):
@@ -19,10 +19,13 @@ class SignalCorrelator:
         # We need at least some price history. If mocked, we might get empty lists.
         rsi = 50.0
         macd_data = {"macd": 0.0, "signal": 0.0, "hist": 0.0}
+        ema = 0.0
         
         if price_history and len(price_history) > 10:
              rsi = calculate_rsi(price_history)
              macd_data = calculate_macd(price_history)
+             emas = calculate_ema(price_history, 20) # 20-period EMA
+             ema = emas[-1] if emas else 0.0
 
         # Base confidence derived from Z-scores (0-60 points)
         confidence_score = 0.0
@@ -82,6 +85,7 @@ class SignalCorrelator:
             "volume_z": vol_z,
             "rsi": rsi,
             "macd": macd_data,
+            "ema": ema,
             "confidence": int(confidence_score),
             "entry": entry,
             "target": target,

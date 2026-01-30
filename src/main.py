@@ -238,7 +238,9 @@ async def main():
                     tech_data = {
                         "rsi": signal.get("rsi", 50),
                         "macd": signal.get("macd", {}).get("macd", 0),
-                        "price": signal.get("price", 0)
+                        "price": signal.get("price", 0),
+                        "ema": signal.get("ema", 0),
+                        "volume_z": signal.get("volume_z", 0)
                     }
                     
                     decisions = await strategy_manager.get_decisions(ticker, tech_data, full_intel)

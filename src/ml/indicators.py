@@ -40,6 +40,17 @@ def calculate_rsi(prices: List[float], period: int = 14) -> float:
             
     return rsi
 
+def calculate_ema(data: List[float], span: int) -> List[float]:
+    """
+    Calculates the Exponential Moving Average (EMA).
+    """
+    if not data: return []
+    alpha = 2 / (span + 1)
+    ema = [data[0]]
+    for price in data[1:]:
+        ema.append(alpha * price + (1 - alpha) * ema[-1])
+    return ema
+
 def calculate_macd(prices: List[float], fast: int = 12, slow: int = 26, signal: int = 9) -> Dict[str, float]:
     """
     Calculates MACD, Signal line, and Histogram.
@@ -47,14 +58,6 @@ def calculate_macd(prices: List[float], fast: int = 12, slow: int = 26, signal: 
     """
     if len(prices) < slow + signal:
         return {"macd": 0.0, "signal": 0.0, "hist": 0.0}
-
-    # Helper for EMA
-    def calculate_ema(data: List[float], span: int) -> List[float]:
-        alpha = 2 / (span + 1)
-        ema = [data[0]]
-        for price in data[1:]:
-            ema.append(alpha * price + (1 - alpha) * ema[-1])
-        return ema
 
     # Calculate EMAs
     ema_fast = calculate_ema(prices, fast)

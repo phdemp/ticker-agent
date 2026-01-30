@@ -102,8 +102,10 @@ class StrategyManager:
                 user_msg = f"""
                 Market Data for {ticker}:
                 Price: ${technicals.get('price')}
+                EMA (20): ${technicals.get('ema')}
                 RSI: {technicals.get('rsi')}
                 MACD: {technicals.get('macd')}
+                Volume Z-Score: {technicals.get('volume_z')}
                 News Summary: {news_summary}
                 
                 Task: DECIDE.
@@ -131,15 +133,24 @@ class StrategyManager:
                 conf = 0
                 reason = res
                 try:
-                    lines = res.split('\n')
-                    for line in lines:
-                        if "ACTION:" in line:
-                            action = line.split(":")[1].strip().upper()
-                        if "CONFIDENCE:" in line:
-                            conf = int(line.split(":")[1].strip())
-                        if "REASON:" in line:
-                            reason = line.split(":")[1].strip()
-                except:
+                    res_upper = res.upper()
+                    if "ACTION:" in res_upper:
+                        action_part = res_upper.split("ACTION:")[1].split("\n")[0].strip()
+                        if "BUY" in action_part: action = "BUY"
+                        elif "SELL" in action_part: action = "SELL"
+                        else: action = "HOLD"
+                    
+                    if "CONFIDENCE:" in res_upper:
+                        conf_part = res_upper.split("CONFIDENCE:")[1].split("\n")[0].replace("%", "").strip()
+                        # Extract digits only
+                        conf_digits = "".join(filter(str.isdigit, conf_part))
+                        if conf_digits:
+                            conf = int(conf_digits)
+                    
+                    if "REASON:" in res_upper:
+                        reason = res.split("REASON:")[1].split("\n")[0].strip()
+                except Exception as e:
+                    logger.warning(f"Failed to parse bot {bot_id} response: {e}")
                     pass
                 
                 decisions.append({

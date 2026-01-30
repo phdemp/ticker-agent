@@ -25,10 +25,8 @@ class PaperTrader:
         return self.con.execute("SELECT * FROM portfolio").fetchall()
 
     def get_active_trades(self):
-        col_names = [desc[0] for desc in self.con.description]
         rows = self.con.execute("SELECT * FROM trades WHERE status='OPEN'").fetchall()
-        # Convert to dict
-        # Assuming schema: id, ticker, entry_price, amount, entry_time, status, exit_price, exit_time, pnl, pnl_pct, confidence, notes
+        # Returns list of rows: id, ticker, entry_price, amount, entry_time, status, exit_price, exit_time, pnl, pnl_pct, confidence, notes, bot_id
         return rows
 
     def open_trade(self, ticker: str, price: float, amount_usd: float, confidence: float, notes: str = "", bot_id: str = "Manual", algorithm_used: str = ""):
@@ -77,7 +75,7 @@ class PaperTrader:
     def check_trades(self, current_prices: dict):
         """
         Checks active trades against current prices for Stop Loss / Take Profit.
-        Simple logic: TP +15%, SL -10%
+        Strategy: TP +15%, SL -12% (Updated for Crypto Volatility)
         """
         trades = self.con.execute("SELECT * FROM trades WHERE status='OPEN'").fetchall()
         # manual mapping of tuple indices based on db.py schema:
@@ -106,9 +104,9 @@ class PaperTrader:
             if pnl_pct >= 0.15:
                 close = True
                 reason = "Take Profit (+15%)"
-            elif pnl_pct <= -0.10:
+            elif pnl_pct <= -0.12:
                 close = True
-                reason = "Stop Loss (-10%)"
+                reason = "Stop Loss (-12%)"
                 
             if close:
                 self.close_trade(t_id, curr_price, reason)

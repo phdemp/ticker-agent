@@ -17,10 +17,25 @@ class DexScreenerScraper(BaseScraper):
                 data = response.json()
                 pairs = data.get("pairs", [])
                 
-                # Sort by liquidity desc
-                pairs.sort(key=lambda x: float(x.get("liquidity", {}).get("usd", 0) or 0), reverse=True)
+                # STRICT FILTERING: Ensure the symbol matches the query exactly
+                # This prevents "BTC" from matching "BTCB", "BTC-OLD", etc.
+                filtered_pairs = []
+                for p in pairs:
+                    base_symbol = p.get("baseToken", {}).get("symbol", "").upper()
+                    if base_symbol == query.upper():
+                        filtered_pairs.append(p)
                 
-                return self._process_pairs(pairs, limit)
+                # Sort by chain priority and liquidity
+                # Major chains first, then highest liquidity
+                chain_priority = {"solana": 1, "ethereum": 2, "base": 3, "bsc": 4}
+                def sort_key(x):
+                    prio = chain_priority.get(x.get("chainId", "").lower(), 99)
+                    liq = float(x.get("liquidity", {}).get("usd", 0) or 0)
+                    return (prio, -liq) # Ascending priority (1 is first), then descending liquidity
+                
+                filtered_pairs.sort(key=sort_key)
+                
+                return self._process_pairs(filtered_pairs, limit)
             else:
                 self.log_error(f"API Error: {response.status_code}")
                 return []

@@ -50,6 +50,44 @@ class CoinMarketCapScraper:
             logger.error(f"Failed to fetch from CoinMarketCap: {e}")
             return []
 
+    async def get_quotes(self, symbols: List[str]) -> Dict[str, Dict]:
+        """
+        Fetches the latest quotes for a list of ticker symbols.
+        Returns a dict mapping symbol to price and volume data.
+        """
+        if not self.api_key or not symbols:
+            return {}
+
+        # Strip $ from symbols
+        clean_symbols = [s.lstrip("$") for s in symbols]
+        url = f"{self.base_url}/v1/cryptocurrency/quotes/latest"
+        params = {
+            'symbol': ",".join(clean_symbols),
+            'convert': 'USD'
+        }
+
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url, headers=self.headers, params=params) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        quotes = {}
+                        for symbol, item in data.get('data', {}).items():
+                            quote = item.get('quote', {}).get('USD', {})
+                            quotes[f"${symbol}"] = {
+                                "price": quote.get("price", 0),
+                                "volume_24h": quote.get("volume_24h", 0),
+                                "percent_change_24h": quote.get("percent_change_24h", 0)
+                            }
+                        return quotes
+                    else:
+                        error_msg = await response.text()
+                        logger.error(f"CMC Quotes API Error {response.status}: {error_msg}")
+                        return {}
+        except Exception as e:
+            logger.error(f"Failed to fetch quotes from CoinMarketCap: {e}")
+            return {}
+
 if __name__ == "__main__":
     # Test script
     import asyncio

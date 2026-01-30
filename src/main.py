@@ -147,20 +147,32 @@ async def main():
 
         logger.info(f"Final Watchlist: {dynamic_watchlist}")
 
+        # Batch fetch quotes from CMC for price accuracy
+        cmc_quotes = await cmc.get_quotes(list(dynamic_watchlist))
+        logger.info(f"Fetched {len(cmc_quotes)} price anchors from CoinMarketCap.")
+
         for ticker in dynamic_watchlist:
             try:
-                # 1. Get DexScreener Data (Clean ticker first)
+                # 1. Get Price Anchor from CMC (Source of Truth)
+                cmc_data = cmc_quotes.get(ticker)
+                
+                # 2. Get DexScreener Data for Technicals & Long-tail tickers
                 search_query = ticker.lstrip("$")
                 pair_data = await dex.scrape(search_query, limit=1)
                 
-                if not pair_data:
+                if not pair_data and not cmc_data:
                     logger.warning(f"No data found for {ticker}")
                     continue
                 
-                pair = pair_data[0]
-                logger.debug(f"DEBUG: Pair data for {ticker}: {pair}")
-                current_price = float(pair.get("price", 0) or 0)
-                current_volume = pair.get("volume_profile", {}).get("buys", 0) + pair.get("volume_profile", {}).get("sells", 0)
+                pair = pair_data[0] if pair_data else {}
+                
+                # If we have CMC data, use it for price. Otherwise, fallback to Dex.
+                if cmc_data:
+                    current_price = cmc_data['price']
+                    current_volume = cmc_data['volume_24h']
+                else:
+                    current_price = float(pair.get("price", 0) or 0)
+                    current_volume = pair.get("volume_profile", {}).get("buys", 0) + pair.get("volume_profile", {}).get("sells", 0)
                 
                 # 2. Get Sentiment (Mocking history for now as we don't have a DB yet)
                 # In prod, fetch from DB

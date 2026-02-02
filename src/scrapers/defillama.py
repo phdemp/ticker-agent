@@ -120,6 +120,85 @@ class DeFiLlamaScraper(BaseScraper):
             
         return []
 
+    async def get_protocols(self) -> List[Dict[str, Any]]:
+        """
+        Fetches all protocols from DeFiLlama.
+        Useful for screening top DApps by TVL.
+        """
+        try:
+            resp = await self.client.get(f"{self.base_url}/protocols")
+            if resp.status_code == 200:
+                data = resp.json()
+                # Sort by TVL descending
+                return sorted(data, key=lambda x: x.get('tvl', 0) or 0, reverse=True)
+            else:
+                self.log_error(f"Protocols fetch failed: {resp.status_code}")
+                return []
+        except Exception as e:
+            self.log_error(f"Protocols error: {e}")
+            return []
+
+    async def get_protocol(self, slug: str) -> Dict[str, Any]:
+        """
+        Fetches detailed data for a specific protocol.
+        Slug example: 'aave', 'uniswap', 'lido'
+        """
+        try:
+            resp = await self.client.get(f"{self.base_url}/protocol/{slug}")
+            if resp.status_code == 200:
+                return resp.json()
+            else:
+                self.log_error(f"Protocol {slug} fetch failed: {resp.status_code}")
+                return {}
+        except Exception as e:
+            self.log_error(f"Protocol {slug} error: {e}")
+            return {}
+
+    async def get_historical_tvl(self, chain: str) -> List[Dict[str, Any]]:
+        """
+        Fetches historical TVL for a specific chain.
+        """
+        try:
+            resp = await self.client.get(f"{self.base_url}/v2/historicalChainTvl/{chain}")
+            if resp.status_code == 200:
+                return resp.json()
+            else:
+                self.log_error(f"Historical TVL for {chain} failed: {resp.status_code}")
+                return []
+        except Exception as e:
+            self.log_error(f"Historical TVL for {chain} error: {e}")
+            return []
+
+    async def get_dex_volumes(self) -> Dict[str, Any]:
+        """
+        Fetches DEX volume overview.
+        """
+        try:
+            resp = await self.client.get(f"{self.base_url}/overview/dexs")
+            if resp.status_code == 200:
+                return resp.json()
+            else:
+                self.log_error(f"DEX Volumes fetch failed: {resp.status_code}")
+                return {}
+        except Exception as e:
+            self.log_error(f"DEX Volumes error: {e}")
+            return {}
+
+    async def get_fees_revenue(self) -> Dict[str, Any]:
+        """
+        Fetches Fees and Revenue overview.
+        """
+        try:
+            resp = await self.client.get(f"{self.base_url}/overview/fees")
+            if resp.status_code == 200:
+                return resp.json()
+            else:
+                self.log_error(f"Fees Revenue fetch failed: {resp.status_code}")
+                return {}
+        except Exception as e:
+            self.log_error(f"Fees Revenue error: {e}")
+            return {}
+
     def scrape(self, query: str = "", limit: int = 5):
         # ... (keep existing scrape wrapper or leave it be, we are adding a new method)
         return super().scrape(query, limit) # Just a placeholder if I need to touch it

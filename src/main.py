@@ -167,9 +167,15 @@ async def main():
                 pair = pair_data[0] if pair_data else {}
                 
                 # If we have CMC data, use it for price. Otherwise, fallback to Dex.
+                price_change = pair.get("price_change") # Default to Dex
+                
                 if cmc_data:
                     current_price = cmc_data['price']
                     current_volume = cmc_data['volume_24h']
+                    # Adapt CMC 24h change to match Dex structure {'h24': val}
+                    if price_change is None:
+                        price_change = {}
+                    price_change['h24'] = cmc_data['percent_change_24h']
                 else:
                     current_price = float(pair.get("price", 0) or 0)
                     current_volume = pair.get("volume_profile", {}).get("buys", 0) + pair.get("volume_profile", {}).get("sells", 0)
@@ -218,7 +224,7 @@ async def main():
                     "name": pair.get("name"),
                     "logo": logo_url,
                     "price": current_price, # Added price to signal
-                    "price_change": pair.get("price_change"),
+                    "price_change": price_change,
                     "volume_profile": pair.get("volume_profile"),
                     "liquidity": pair.get("metadata", {}).get("liquidity"),
                     "fdv": pair.get("metadata", {}).get("fdv"),

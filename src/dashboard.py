@@ -497,7 +497,9 @@ def generate_dashboard(defi_stats=None, top_picks=None, news=None, signals=None,
             ticker = s.get('ticker', 'Unknown')
             clean_ticker = ticker.replace('$', '').replace('/', '')
             
-            price_chg = float(s.get('price_change', {}).get('h24', 0) or 0)
+            
+            price_change_data = s.get('price_change') or {}
+            price_chg = float(price_change_data.get('h24', 0) or 0)
             price_change_color = "text-green-400" if price_chg >= 0 else "text-red-400"
             price_change_display = f"+{price_chg:.2f}" if price_chg >= 0 else f"{price_chg:.2f}"
             

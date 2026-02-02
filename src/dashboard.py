@@ -507,7 +507,8 @@ def generate_dashboard(defi_stats=None, top_picks=None, news=None, signals=None,
             conf_color = "text-green-400" if conf > 70 else ("text-yellow-400" if conf > 40 else "text-gray-400")
             conf_gradient = "bg-gradient-to-r from-blue-500 to-green-400"
             
-            vol = s.get('volume_profile', {})
+            
+            vol = s.get('volume_profile') or {}
             buys = float(vol.get('buys', 0) or 0)
             sells = float(vol.get('sells', 0) or 0)
             total_vol = buys + sells

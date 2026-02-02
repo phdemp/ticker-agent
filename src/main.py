@@ -225,7 +225,7 @@ async def main():
                     "logo": logo_url,
                     "price": current_price, # Added price to signal
                     "price_change": price_change,
-                    "volume_profile": pair.get("volume_profile"),
+                    "volume_profile": pair.get("volume_profile") or {},
                     "liquidity": pair.get("metadata", {}).get("liquidity"),
                     "fdv": pair.get("metadata", {}).get("fdv"),
                     "chain": pair.get("metadata", {}).get("chainId"),

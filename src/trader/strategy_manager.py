@@ -210,7 +210,7 @@ class StrategyManager:
             t_id = t['id']
             bot_id = t['bot_id']
             ticker = t['ticker']
-            pnl = t['pnl_pct']
+            pnl = float(t.get('pnl_pct') or 0.0)
             notes = t['notes']
             entry = t['entry_time']
             used_prompt = t.get('algorithm_used') or ""

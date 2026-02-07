@@ -10,6 +10,7 @@ from scrapers.defillama import DeFiLlamaScraper
 from scrapers.cointelegraph import CointelegraphScraper
 from scrapers.artemis import ArtemisScraper
 from scrapers.coinmarketcap import CoinMarketCapScraper
+from scrapers.coingecko import CoinGeckoScraper
 from ml.sentiment import SentimentAnalyzer
 from ml.correlator import SignalCorrelator
 from notifications import DiscordNotifier
@@ -44,6 +45,7 @@ async def main():
     cointelegraph = CointelegraphScraper()
     artemis = ArtemisScraper()
     cmc = CoinMarketCapScraper()
+    coingecko = CoinGeckoScraper()
     sentiment_analyzer = SentimentAnalyzer()
     correlator = SignalCorrelator()
     notifier = DiscordNotifier(DISCORD_WEBHOOK)
@@ -144,6 +146,20 @@ async def main():
                             logger.info(f"Discovered trending token: {ticker}")
             except Exception as e:
                 logger.error(f"Failed to resolve boost {boost.get('tokenAddress')}: {e}")
+
+        # 0.4 CoinGecko Trending (Free API)
+        logger.info("Fetching trending coins from CoinGecko...")
+        cg_trending_data = []
+        try:
+            cg_trending = await coingecko.get_trending_coins()
+            for ticker in cg_trending:
+                dynamic_watchlist.add(ticker)
+                logger.info(f"Discovered CoinGecko trending: {ticker}")
+            
+            # Also fetch detailed data for dashboard display
+            cg_trending_data = await coingecko.get_trending_details()
+        except Exception as e:
+            logger.error(f"Failed to fetch CoinGecko trending: {e}")
 
         logger.info(f"Final Watchlist: {dynamic_watchlist}")
 
@@ -349,7 +365,8 @@ async def main():
             news=news if 'news' in locals() else None,
             signals=analyzed_tokens,
             stablecoin_flows=stablecoin_chains,
-            portfolio=portfolio_data if 'portfolio_data' in locals() else None
+            portfolio=portfolio_data if 'portfolio_data' in locals() else None,
+            trending=cg_trending_data if 'cg_trending_data' in locals() else None
         )
         logger.info("Run complete.")
 

@@ -436,7 +436,30 @@ TRADE_ROW_TEMPLATE = """
 </tr>
 """
 
-def generate_dashboard(defi_stats=None, top_picks=None, news=None, signals=None, stablecoin_flows=None, portfolio=None):
+TRENDING_SECTION_TEMPLATE = """
+<div class="mb-8 bg-gray-800 p-6 rounded-lg border border-gray-700">
+    <h2 class="text-xl font-bold mb-4 text-yellow-400 flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
+        🔥 Trending on CoinGecko
+    </h2>
+    <p class="text-sm text-gray-400 mb-4">Most searched cryptocurrencies in the last 24 hours</p>
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+        {trending_items}
+    </div>
+</div>
+"""
+
+TRENDING_ITEM_TEMPLATE = """
+<div class="bg-gray-700/30 p-3 rounded-lg border border-gray-600 hover:border-yellow-500/50 transition-all flex items-center gap-2">
+    <img src="{thumb}" alt="{symbol}" class="w-8 h-8 rounded-full" onerror="this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0iIzM3NDE1MSI+PGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiLz48dGV4dCB4PSI1MCUiIHk9IjUwJSIgZHk9Ii4zZW0iIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5Q0EyQjIiIHN0eWxlPSJmb250LWZhbWlseTpzYW5zLXNlcmlmO2ZvbnQtc2l6ZToxMnB4Ij4/PC90ZXh0Pjwvc3ZnPg==';">
+    <div class="flex-1 min-w-0">
+        <p class="text-sm font-bold text-white truncate">{symbol}</p>
+        <p class="text-xs text-gray-400 truncate">#{rank}</p>
+    </div>
+</div>
+"""
+
+def generate_dashboard(defi_stats=None, top_picks=None, news=None, signals=None, stablecoin_flows=None, portfolio=None, trending=None):
     """Generates the index.html file in the public/ directory."""
     cwd = os.getcwd()
     public_dir = os.path.join(cwd, "public")
@@ -645,9 +668,21 @@ def generate_dashboard(defi_stats=None, top_picks=None, news=None, signals=None,
             empty_msg=empty_msg
         )
 
+    # 7. Trending Tokens HTML (CoinGecko)
+    trending_html = ""
+    if trending:
+        trending_items = ""
+        for coin in trending[:15]:  # Show top 15 trending
+            trending_items += TRENDING_ITEM_TEMPLATE.format(
+                symbol=coin.get('symbol', 'N/A'),
+                thumb=coin.get('thumb', ''),
+                rank=coin.get('market_cap_rank', 'N/A')
+            )
+        trending_html = TRENDING_SECTION_TEMPLATE.format(trending_items=trending_items)
+
     # Combine everything
     html = HTML_TEMPLATE.format(
-        cards=picks_html + portfolio_html + defi_html + flows_html + news_html + cards_html,
+        cards=picks_html + portfolio_html + trending_html + defi_html + flows_html + news_html + cards_html,
         timestamp="Just now"
     )
     

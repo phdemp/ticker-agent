@@ -36,31 +36,42 @@ WATCHLIST = [
 
 async def main():
     logger.info("Starting Ticker Agent v2...")
-    init_db()
     
-    # Initialize components
-    nitter = NitterScraper()
-    dex = DexScreenerScraper()
-    defillama = DeFiLlamaScraper()
-    cointelegraph = CointelegraphScraper()
-    artemis = ArtemisScraper()
-    cmc = CoinMarketCapScraper()
-    coingecko = CoinGeckoScraper()
-    sentiment_analyzer = SentimentAnalyzer()
-    correlator = SignalCorrelator()
-    notifier = DiscordNotifier(DISCORD_WEBHOOK)
-    rug_checker = RugCheck()
-    
-    # New Agents
-    researcher = WebResearcher()
-    trader = PaperTrader()
-    strategy_manager = StrategyManager()
-    whale_watcher = WhaleWatcher()
-    
+    # Initialize dashboard data with defaults to ensure dashboard always renders
+    defi_stats = None
+    top_picks = {"safe": {}, "mid": {}, "degen": {}}
+    news = []
     analyzed_tokens = []
-
-
+    stablecoin_chains = []
+    portfolio_data = {"balance_usd": 10000.0, "active_trades": []}
+    cg_trending_data = []
+    
+    try:
+        init_db()
         
+        # Initialize components
+        nitter = NitterScraper()
+        dex = DexScreenerScraper()
+        defillama = DeFiLlamaScraper()
+        cointelegraph = CointelegraphScraper()
+        artemis = ArtemisScraper()
+        cmc = CoinMarketCapScraper()
+        coingecko = CoinGeckoScraper()
+        sentiment_analyzer = SentimentAnalyzer()
+        correlator = SignalCorrelator()
+        notifier = DiscordNotifier(DISCORD_WEBHOOK)
+        rug_checker = RugCheck()
+        
+        # New Agents
+        researcher = WebResearcher()
+        trader = PaperTrader()
+        strategy_manager = StrategyManager()
+        whale_watcher = WhaleWatcher()
+        
+    except Exception as e:
+        logger.error(f"Failed to initialize components: {e}")
+        return
+
     try:
         # Initialize dynamic watchlist with static list
         dynamic_watchlist = set(WATCHLIST)
@@ -317,9 +328,9 @@ async def main():
                  "balance_usd": trader.get_balance("USD"),
                  "active_trades": trader.get_active_trades()
              }
+             logger.info(f"Portfolio updated: {len(portfolio_data['active_trades'])} active trades.")
         except Exception as e:
              logger.error(f"Portfolio update failed: {e}")
-             portfolio_data = {}
 
         # Sort signals by confidence
         analyzed_tokens.sort(key=lambda x: x.get('confidence', 0), reverse=True)
@@ -358,15 +369,16 @@ async def main():
         logger.error(f"Main loop error: {e}")
     
     finally:
-        # ...
+        # Final Dashboard Generation
+        logger.info("Generating final dashboard...")
         generate_dashboard(
-            defi_stats=defi_stats[0] if 'defi_stats' in locals() and defi_stats else None,
-            top_picks=top_picks if 'top_picks' in locals() else None,
-            news=news if 'news' in locals() else None,
+            defi_stats=defi_stats[0] if defi_stats else None,
+            top_picks=top_picks,
+            news=news,
             signals=analyzed_tokens,
             stablecoin_flows=stablecoin_chains,
-            portfolio=portfolio_data if 'portfolio_data' in locals() else None,
-            trending=cg_trending_data if 'cg_trending_data' in locals() else None
+            portfolio=portfolio_data,
+            trending=cg_trending_data
         )
         logger.info("Run complete.")
 

@@ -17,7 +17,7 @@ class PaperTrader:
         logger.info("Paper Account balance FIXED at $10,000 USD (Unlimited Trading Enabled)")
         
     def get_balance(self, asset="USD"):
-        res = self.con.execute(f"SELECT balance FROM portfolio WHERE asset='{asset}'").fetchone()
+        res = self.con.execute("SELECT balance FROM portfolio WHERE asset = ?", (asset,)).fetchone()
         return res[0] if res else 0.0
 
     def get_portfolio(self):
@@ -34,23 +34,14 @@ class PaperTrader:
         Opens a new paper trade.
         """
         try:
-            # Skip balance check for unlimited trading
-            # usd_bal = self.get_balance("USD")
-            
-            # Skip deduction - balance stays at 10k
-            # new_bal = usd_bal - amount_usd
-            # self.con.execute(f"UPDATE portfolio SET balance={new_bal}, last_updated=current_timestamp WHERE asset='USD'")
-            
             # Insert Trade
             trade_id = f"{ticker}_{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}"
             amount_tokens = amount_usd / price
             
-            self.con.execute(f"""
-                INSERT INTO trades VALUES (
-                    '{trade_id}', '{ticker}', {price}, {amount_tokens}, current_timestamp, 
-                    'OPEN', 0, NULL, 0, 0, {confidence}, '{notes}', '{bot_id}', '{algorithm_used}'
-                )
-            """)
+            self.con.execute("""
+                INSERT INTO trades (id, ticker, entry_price, amount, entry_time, status, exit_price, pnl, pnl_pct, confidence_at_entry, notes, bot_id, algorithm_used)
+                VALUES (?, ?, ?, ?, current_timestamp, 'OPEN', 0, 0, 0, ?, ?, ?, ?)
+            """, (trade_id, ticker, price, amount_tokens, confidence, notes, bot_id, algorithm_used))
             
             # Sync to Supabase
             supabase_sync.sync_trade({
@@ -78,8 +69,6 @@ class PaperTrader:
         Strategy: TP +15%, SL -12% (Updated for Crypto Volatility)
         """
         trades = self.con.execute("SELECT * FROM trades WHERE status='OPEN'").fetchall()
-        # manual mapping of tuple indices based on db.py schema:
-        # 0:id, 1:ticker, 2:entry, 3:amount
         
         for t in trades:
             t_id, ticker, entry, amount = t[0], t[1], t[2], t[3]
@@ -88,7 +77,6 @@ class PaperTrader:
             clean_ticker = ticker.replace("$", "").upper()
             
             # Find current price
-            # We need to map generic tickers to what we have in current_prices (which comes from main.py's analyzed_tokens)
             curr = current_prices.get(clean_ticker) or current_prices.get(ticker)
             
             if not curr:
@@ -114,7 +102,7 @@ class PaperTrader:
     def close_trade(self, trade_id, exit_price, notes=""):
         try:
             # Get trade details
-            t = self.con.execute(f"SELECT ticker, amount, entry_price FROM trades WHERE id='{trade_id}'").fetchone()
+            t = self.con.execute("SELECT ticker, amount, entry_price FROM trades WHERE id = ?", (trade_id,)).fetchone()
             if not t: return
             
             ticker, amount, entry = t[0], t[1], t[2]
@@ -123,27 +111,23 @@ class PaperTrader:
             pnl_pct = (exit_price - entry) / entry * 100
             
             # Update Trade
-            self.con.execute(f"""
+            self.con.execute("""
                 UPDATE trades SET 
                     status='CLOSED', 
-                    exit_price={exit_price}, 
+                    exit_price=?, 
                     exit_time=current_timestamp, 
-                    pnl={pnl}, 
-                    pnl_pct={pnl_pct},
-                    notes=notes || ' - {notes}'
-                WHERE id='{trade_id}'
-            """)
-            
-            # Skip Credit back - balance stays at 10k
-            # curr_bal = self.get_balance("USD")
-            # self.con.execute(f"UPDATE portfolio SET balance={curr_bal + usd_returned} WHERE asset='USD'")
+                    pnl=?, 
+                    pnl_pct=?,
+                    notes=notes || ' - ' || ?
+                WHERE id=?
+            """, (exit_price, pnl, pnl_pct, notes, trade_id))
             
             # Sync to Supabase
             supabase_sync.sync_trade({
                 "id": trade_id,
                 "status": "CLOSED",
                 "exit_price": exit_price,
-                "exit_time": "now()", # Supabase will handle or we can pass isoformat
+                "exit_time": "now()",
                 "pnl": pnl,
                 "pnl_pct": pnl_pct,
                 "notes": f"CLOSED: {notes}"

@@ -1,0 +1,25 @@
+2026-02-02 11:03:41.804 | INFO     | __main__:run_all:218 - 🤖 Tester Bot: Starting System Health Check...
+2026-02-02 11:03:41.806 | INFO     | __main__:check_connectivity:54 - --- 1. Connectivity Checks ---
+2026-02-02 11:03:41.842 | INFO     | __main__:log_check:50 - ✅ DNS Resolution: Successfully resolved google.com
+2026-02-02 11:03:43.351 | INFO     | __main__:log_check:50 - ✅ Internet Access: HTTPS GET successful
+2026-02-02 11:03:43.352 | INFO     | __main__:check_database:76 - --- 2. Database Checks ---
+2026-02-02 11:03:43.353 | INFO     | __main__:log_check:50 - ✅ DB File Exists: Found database file
+2026-02-02 11:03:43.419 | INFO     | __main__:log_check:50 - ✅ Table: trades: Accessible, Rows: 5
+2026-02-02 11:03:43.420 | INFO     | __main__:log_check:50 - ✅ Table: strategies: Accessible, Rows: 6
+2026-02-02 11:03:43.427 | INFO     | __main__:check_market_data:106 - --- 3. Market Data Checks ---
+2026-02-02 11:03:44.165 | INFO     | __main__:log_check:50 - ✅ CoinMarketCap Quote: BTC Price: $74,939.94
+2026-02-02 11:03:45.737 | INFO     | __main__:log_check:50 - ✅ DexScreener Scrape: BTC Pair Found: $64993.74
+2026-02-02 11:03:45.738 | INFO     | __main__:check_intelligence:137 - --- 4. Intelligence Checks ---
+2026-02-02 11:03:47.327 | INFO     | __main__:log_check:50 - ✅ Cointelegraph News: Fetched: Buterin pitches DAOs, predicti...
+2026-02-02 11:03:47.345 | INFO     | __main__:log_check:50 - ✅ Sentiment Analysis: Positive Test Score: 0.69
+2026-02-02 11:03:47.347 | INFO     | __main__:log_check:50 - ✅ Signal Correlator: Initialized Successfully
+2026-02-02 11:03:47.348 | INFO     | __main__:check_agents:164 - --- 5. Agent Checks ---
+2026-02-02 11:03:47.386 | INFO     | __main__:log_check:50 - ✅ Strategy Manager: Active Bots: 6
+2026-02-02 11:03:49.467 | INFO     | __main__:log_check:50 - ✅ Bot: Gemini_Trend: Response: Online
+2026-02-02 11:03:49.471 | INFO     | __main__:check_trading:189 - --- 6. Trading Checks ---
+2026-02-02 11:03:49.528 | INFO     | trader.paper:__init__:17 - Paper Account balance FIXED at $10,000 USD (Unlimited Trading Enabled)
+2026-02-02 11:03:49.532 | INFO     | __main__:log_check:50 - ✅ Portfolio Balance: $10,000.00
+2026-02-02 11:03:51.730 | INFO     | supabase_client:sync_trade:39 - Synced trade TEST_HEALTH_20260202110349 to Supabase.
+2026-02-02 11:03:51.730 | INFO     | trader.paper:open_trade:68 - PAPER TRADE OPENED: TEST_HEALTH @ $100.0 (TesterBot)
+2026-02-02 11:03:51.731 | INFO     | __main__:log_check:50 - ✅ Order Execution: Trade Opened Successfully
+2026-02-02 11:03:51.735 | INFO     | __main__:log_check:50 - ✅ Cleanup: Test trade deleted from DB
